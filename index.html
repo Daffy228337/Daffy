@@ -40,30 +40,30 @@
 
                 drawSectors(map);
             }
+        }
 
-            function drawSectors(map) {
-                let sectors = [
-                    { sector: 'Сектор А', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                    { sector: 'Сектор Б', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                    { sector: 'Сектор В', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                    { sector: 'Сектор Г', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] }
-                ];
+        function drawSectors(map) {
+            let sectors = [
+                { sector: 'Сектор А', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                { sector: 'Сектор Б', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                { sector: 'Сектор В', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                { sector: 'Сектор Г', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] }
+            ];
 
-                sectors.forEach(sector => {
-                    let polygon = new ymaps.Polygon({
-                        geometry: {
-                            type: 'Polygon',
-                            coordinates: sector.coordinates
-                        },
-                        properties: {
-                            hintContent: sector.sector,
-                            balloonContent: sector.sector
-                        }
-                    });
-
-                    map.geoObjects.add(polygon);
+            sectors.forEach(sector => {
+                let polygon = new ymaps.Polygon({
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: sector.coordinates
+                    },
+                    properties: {
+                        hintContent: sector.sector,
+                        balloonContent: sector.sector
+                    }
                 });
-            }
+
+                map.geoObjects.add(polygon);
+            });
         }
 
         function addCourier() {
@@ -84,24 +84,44 @@
         }
 
         function assignOrder() {
-            // Здесь должен быть реализован алгоритм автоназначения заказов на курьеров
+            let assignments = {};
+            for (let order of orders) {
+                let minTime = Infinity;
+                let assignedCourier = null;
+                for (let courier of couriers) {
+                    let deliveryTime = getDistance(order.pickup, courier.location) + getDistance(courier.location, order.delivery);
+                    if (deliveryTime < minTime) {
+                        minTime = deliveryTime;
+                        assignedCourier = courier.id;
+                    }
+                }
+                assignments[order.id] = assignedCourier;
+            }
+            return assignments;
+        }
+
+        function getDistance(coord1, coord2) {
+            const url = `https://geocode-maps.yandex.ru/1.x/?geocode=${coord1}&geocode=${coord2}&format=json&apikey=${API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            const points = data.response.geoObjectCollection.featureMember;
+            const distance = points[1].geoObject.point.pos.split(' ');
+            return parseFloat(distance[0]);
         }
 
         function updateLogs() {
             let logs = document.getElementById('logs');
             logs.innerHTML = '';
-
-            couriers.forEach(courier => {
+            for (let courier of couriers) {
                 let courierLog = document.createElement('div');
                 courierLog.textContent = `Курьер ${courier.id}: ${courier.orders.map(order => `${order.id}`).join(', ')}`;
                 logs.appendChild(courierLog);
-            });
-
-            orders.forEach(order => {
+            }
+            for (let order of orders) {
                 let orderLog = document.createElement('div');
                 orderLog.textContent = `${order.id} Заказ ${order.pickup} -> ${order.delivery} ${order.time}`;
                 logs.appendChild(orderLog);
-            });
+            }
         }
     </script>
 </body>
