@@ -1,39 +1,54 @@
-import requests
-import json
+import yandex_api
 
-API_KEY = '0f2d1024-aa27-4ceb-b1cc-284236a7812d'
+couriers = {}  # dictionary to store courier information
+orders = []  # list to store orders
 
-def get_distance(coord1, coord2):
-    url = f'https://geocode-maps.yandex.ru/1.x/?geocode={coord1}&geocode={coord2}&format=json&apikey={API_KEY}'
-    response = requests.get(url)
-    data = json.loads(response.text)
-    points = data['response']['GeoObjectCollection']['featureMember']
-    distance = points[1]['GeoObject']['Point']['pos'].split(' ')
-    return float(distance[0])
-
-def assign_orders_to_couriers(orders, couriers):
-    assignments = {}
+def calculate_load(courier_id):
+    # calculate courier's load (number of orders in the next hour, excluding orders in the "Delivered" status)
+    load = 0
     for order in orders:
-        min_time = float('inf')
-        assigned_courier = None
-        for courier in couriers:
-            delivery_time = get_distance(order['pickup'], courier['location']) + get_distance(courier['location'], order['delivery'])
-            if delivery_time < min_time:
-                min_time = delivery_time
-                assigned_courier = courier['id']
-        assignments[order['id']] = assigned_courier
-    return assignments
+        if order['courier_id'] == courier_id and order['status'] != 'Delivered':
+            load += 1
+    return load
 
-# Пример использования
-orders = [
-    {'id': 1, 'pickup': '55.7522200,37.6155600', 'delivery': '55.7512440,37.6184230'},
-    {'id': 2, 'pickup': '55.7512440,37.6184230', 'delivery': '55.7533630,37.6209100'}
-]
+def calculate_priority(courier_id, order_sector):
+    # calculate courier's priority based on their load and direction (sector) of their assigned orders
+    priority = 0
+    if courier_id in couriers:
+        priority = couriers[courier_id]['load'] / (couriers[courier_id]['load'] + 1)
+        if order_sector in couriers[courier_id]['sectors']:
+            priority += 1
+    return priority
 
-couriers = [
-    {'id': 1, 'location': '55.7533630,37.6209100'},
-    {'id': 2, 'location': '55.7512440,37.6184230'}
-]
+def assign_order(order):
+    # assign the order to the courier with the highest priority
+    max_priority = 0
+    assigned_courier = None
+    for courier_id in couriers:
+        priority = calculate_priority(courier_id, order['sector'])
+        if priority > max_priority:
+            max_priority = priority
+            assigned_courier = courier_id
+    if assigned_courier:
+        orders.append({'id': order['id'], 'courier_id': assigned_courier, 'status': 'New'})
+        couriers[assigned_courier]['load'] += 1
+        couriers[assigned_courier]['sectors'].add(order['sector'])
 
-assignments = assign_orders_to_couriers(orders, couriers)
-print(assignments)
+def update_order_status(order_id, new_status):
+    # update the courier's load and priority when an order's status changes
+    for order in orders:
+        if order['id'] == order_id:
+            if new_status == 'Delivered':
+                couriers[order['courier_id']]['load'] -= 1
+            elif new_status == 'In Transit':
+                couriers[order['courier_id']]['load'] += 1
+            break
+
+# example usage
+order = {'id': 1, 'address': 'Москва, ул. Ленина, 1', 'sector': 'А'}
+assign_order(order)
+
+order = {'id': 2, 'address': 'Москва, ул. Ленина, 2', 'sector': 'Б'}
+assign_order(order)
+
+update_order_status(1, 'In Transit')
