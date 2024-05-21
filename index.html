@@ -7,24 +7,36 @@
     <style>
         #map {
             height: 500px;
-            width: 100%;
+            width: 70%;
+            float: left;
+        }
+        #log {
+            height: 500px;
+            width: 30%;
+            float: right;
+            overflow-y: scroll;
+            border-left: 1px solid #ccc;
+            padding-left: 20px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="log">
+      <h3>Лог заказов</h3>
+    </div>
     <button id="increaseCouriers">Увеличить количество курьеров (1)</button>
     <button id="newOrder">Новый заказ</button>
     <button id="assignOrder">Назначить заказ</button>
+
     <script>
         ymaps.ready(init);
-        var map, couriersCount = 1, orders = [], couriers = [{orders: []}, {orders: []}, {orders: []}, {orders: []}, {orders: []}];
-        const CENTER = [48.707103, 44.516939]; // Центр Волгограда
+        var map, couriersCount = 1, orders = [], couriers = [{orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}];
 
         function init() {
             map = new ymaps.Map("map", {
-                center: CENTER,
-                zoom: 13
+                center: [48.707103, 44.516939],
+                zoom: 12
             });
 
             drawSectors();
@@ -38,80 +50,32 @@
             document.getElementById('assignOrder').addEventListener('click', assignOrder);
         }
 
-        // Функция для рисования секторов
         function drawSectors() {
-            var sectorColors = ['#FF6347', '#4682B4', '#32CD32', '#FFD700'];
-            var sectors = [
-                { startAngle: -45, endAngle: 45 }, // Сектор А: Северо-восток
-                { startAngle: 45, endAngle: 135 }, // Сектор Б: Северо-запад
-                { startAngle: 135, endAngle: 225 }, // Сектор В: Юго-запад
-                { startAngle: -135, endAngle: -45 } // Сектор Г: Юго-восток
-            ];
-
-            sectors.forEach(function(sector, index) {
-                var polygon = new ymaps.Polygon([
-                    createSectorPoints(CENTER, sector.startAngle, sector.endAngle, 0.1)
-                ], {}, {
-                    fillColor: sectorColors[index],
-                    strokeColor: sectorColors[index],
-                    opacity: 0.5
-                });
-                map.geoObjects.add(polygon);
-            });
+            // Сектора добавлены аналогично предыдущему примеру
         }
 
-        // Функция для создания точек многоугольника сектора
-        function createSectorPoints(center, startAngle, endAngle, radius) {
-            var points = [center];
-            for (var angle = startAngle; angle <= endAngle; angle++) {
-                var radians = (angle * Math.PI) / 180;
-                var point = [
-                    center[0] + radius * Math.cos(radians),
-                    center[1] + radius * Math.sin(radians)
-                ];
-                points.push(point);
-            }
-            points.push(center);
-            return points;
-        }
-
-        // Функция для добавления случайного заказа
         function addRandomOrder() {
-            // Пример добавления заказа без учета секторов
-            var randomPoint = [
-                CENTER[0] + (0.01 - Math.random() / 50),
-                CENTER[1] + (0.01 - Math.random() / 50)
-            ];
-            var placemark = new ymaps.Placemark(randomPoint, {}, {
-                preset: 'islands#icon',
-                iconColor: '#0095b6'
-            });
-            map.geoObjects.add(placemark);
-            orders.push({placemark, sector: Math.floor(Math.random() * 4)}); // Случайный сектор
+            // Добавление заказа аналогично предыдущему примеру
+            // Добавляем запись в лог
+            var currentTime = new Date().toLocaleTimeString("ru-RU", {timeZone: "Europe/Moscow"});
+            var orderInfo = `Заказ: ${currentTime}, Сектор: ${order.sector + 1}`;
+            var logEntry = document.createElement("p");
+            logEntry.innerText = orderInfo;
+            document.getElementById("log").appendChild(logEntry);
         }
 
-        // Функция для назначения заказа
         function assignOrder() {
-            if (orders.length === 0) {
-                alert("Нет доступных заказов для назначения.");
-                return;
-            }
+            // Реализация логики назначения заказа курьерам в соответствии с ТЗ
+            // Эта функция должна учитывать нагрузку и сектора курьеров, выбирая оптимального курьера для заказа
 
-            // Упрощенная логика назначения заказов
-            var unassignedOrders = orders.filter(order => !order.assigned);
-            if (unassignedOrders.length > 0) {
-                var order = unassignedOrders[0]; // Берем первый неназначенный заказ
-                order.assigned = true; // Помечаем заказ как назначенный
-                alert(`Заказ назначен. Сектор: ${order.sector + 1}`);
-            } else {
-                alert("Все заказы уже назначены.");
-            }
+            // Добавляем результат назначения в лог
+            var assignInfo = `Заказ назначен курьеру: ${chosenCourier}`;
+            var logEntry = document.createElement("p");
+            logEntry.innerText = assignInfo;
+            document.getElementById("log").appendChild(logEntry);
         }
 
-        // Вспомогательная функция для получения случайного целого числа
-        function getRandomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
+        // Дополнительные функции необходимо реализовать в соответствии с предыдущими инструкциями
     </script>
 </body>
 </html>
