@@ -1,57 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Автораспределение заказов</title>
-<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
-" type="text/javascript"></script>
-<style>
-html, body {
-height: 100%;
-margin: 0;
-padding: 0;
-}
-#map {
-height: 80vh;
-}
-#controls {
-position: absolute;
-top: 10px;
-left: 10px;
-background-color: white;
-padding: 10px;
-border-radius: 5px;
-box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-#logs {
-position: absolute;
-bottom: 10px;
-left: 10px;
-background-color: white;
-padding: 10px;
-border-radius: 5px;
-box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-max-height: 200px;
-overflow-y: auto;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Автораспределение заказов</title>
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
+&lang=ru_RU" type="text/javascript"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 80vh;
+    }
+    #controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    #logs {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background-color: white;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
 </head>
 <body>
-<div id="map"></div>
-<div id="controls">
-<button id="addCourier">Добавить курьера</button>
-<button id="removeCourier">Убрать курьера</button>
-<button id="createOrder">Создать заказ</button>
-<button id="assignOrder">Назначить заказ</button>
-</div>
-<div id="logs">
-<div id="orderLog">Лог заказов:</div>
-<div id="assignmentLog">Лог назначений:</div>
-</div>
+  <div id="map"></div>
+  <div id="controls">
+    <button id="addCourier">Добавить курьера</button>
+    <button id="removeCourier">Убрать курьера</button>
+    <button id="createOrder">Создать заказ</button>
+    <button id="assignOrder">Назначить заказ</button>
+  </div>
+  <div id="logs">
+    <div id="orderLog">Лог заказов:</div>
+    <div id="assignmentLog">Лог назначений:</div>
+  </div>
 
-<script>
-// Ваш JavaScript код здесь
-</script>
+  <script>
+    // Вставьте ваш API ключ вместо '0f2d1024-aa27-4ceb-b1cc-284236a7812d
+'
+    ymaps.ready(init);
+
+    function init() {
+      // Код для инициализации карты, создания секторов, логики кнопок и алгоритма назначения заказов
+      // Весь необходимый JavaScript код для реализации функционала страницы
+    }
+  </script>
 </body>
 </html>
