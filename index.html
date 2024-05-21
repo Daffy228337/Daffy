@@ -45,30 +45,38 @@
         // Координаты центра (ресторан)
         var centerPoint = [48.772430, 44.800322]; // Широта, Долгота
 
-        // Крайние точки для секторов (широта, долгота)
-        var north = [48.84, 44.800322];   // Север
-        var east =  [48.772430, 44.86];   // Восток
-        var south = [48.70, 44.800322];   // Юг
-        var west =  [48.772430, 44.74];   // Запад
+        // Определение координат для четырех прямоугольных секторов
+        var sectorSize = 0.05; // Размер сектора в градусах
 
-        // Дополнительные точки для формирования четких секторов
-        var northEast = [48.84, 44.86];   // Северо-восток
-        var southEast = [48.70, 44.86];   // Юго-восток
-        var southWest = [48.70, 44.74];   // Юго-запад
-        var northWest = [48.84, 44.74];   // Северо-запад
+        // Сектор A (верхний правый)
+        var a1 = [centerPoint[0] - sectorSize, centerPoint[1] + sectorSize];
+        var a2 = [centerPoint[0] - sectorSize, centerPoint[1]];
+        var a3 = [centerPoint[0], centerPoint[1]];
+        var a4 = [centerPoint[0], centerPoint[1] + sectorSize];
+
+        // Сектор B (нижний правый)
+        var b1 = [centerPoint[0] - sectorSize, centerPoint[1]];
+        var b2 = [centerPoint[0] - sectorSize, centerPoint[1] - sectorSize];
+        var b3 = [centerPoint[0], centerPoint[1] - sectorSize];
+        var b4 = [centerPoint[0], centerPoint[1]];
+
+        // Сектор C (нижний левый)
+        var c1 = [centerPoint[0], centerPoint[1] - sectorSize];
+        var c2 = [centerPoint[0] + sectorSize, centerPoint[1] - sectorSize];
+        var c3 = [centerPoint[0] + sectorSize, centerPoint[1]];
+        var c4 = [centerPoint[0], centerPoint[1]];
+
+        // Сектор D (верхний левый)
+        var d1 = [centerPoint[0], centerPoint[1]];
+        var d2 = [centerPoint[0] + sectorSize, centerPoint[1]];
+        var d3 = [centerPoint[0] + sectorSize, centerPoint[1] + sectorSize];
+        var d4 = [centerPoint[0], centerPoint[1] + sectorSize];
 
         // Создание секторов
-        createSector([
-            [centerPoint, north, northEast, east], // Сектор A
-            [centerPoint, east, southEast, south], // Сектор B
-            [centerPoint, south, southWest, west], // Сектор C
-            [centerPoint, west, northWest, north]  // Сектор D
-        ], [
-            'rgba(255, 0, 0, 0.5)', // Красный
-            'rgba(0, 255, 0, 0.5)',  // Зеленый
-            'rgba(0, 0, 255, 0.5)',  // Синий
-            'rgba(255, 255, 0, 0.5)' // Желтый
-        ]);
+        createSector([[a1, a2, a3, a4]], 'rgba(255, 0, 0, 0.5)'); // Красный
+        createSector([[b1, b2, b3, b4]], 'rgba(0, 255, 0, 0.5)');  // Зеленый
+        createSector([[c1, c2, c3, c4]], 'rgba(0, 0, 255, 0.5)');  // Синий
+        createSector([[d1, d2, d3, d4]], 'rgba(255, 255, 0, 0.5)'); // Желтый
     }
 </script>
 </body>
