@@ -1,181 +1,57 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Система автоматического распределения заказов</title>
-  <!-- Подключаем Яндекс Maps API -->
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Автораспределение заказов</title>
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
 " type="text/javascript"></script>
-  <style>
-    html, body, #map {
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      margin: 0;
-    }
-    #controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background-color: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    #logs {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background-color: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-      max-height: 200px;
-      overflow-y: auto;
-    }
-  </style>
+<style>
+html, body {
+height: 100%;
+margin: 0;
+padding: 0;
+}
+#map {
+height: 80vh;
+}
+#controls {
+position: absolute;
+top: 10px;
+left: 10px;
+background-color: white;
+padding: 10px;
+border-radius: 5px;
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+#logs {
+position: absolute;
+bottom: 10px;
+left: 10px;
+background-color: white;
+padding: 10px;
+border-radius: 5px;
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+max-height: 200px;
+overflow-y: auto;
+}
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="controls">
-    <button id="addCourier">Добавить курьера</button>
-    <button id="removeCourier">Убрать курьера</button>
-    <button id="createOrder">Создать заказ</button>
-    <button id="assignOrder">Назначить заказ</button>
-  </div>
-  <div id="logs">
-    <div id="orderLog">Лог заказов:</div>
-    <div id="assignmentLog">Лог назначений:</div>
-  </div>
+<div id="map"></div>
+<div id="controls">
+<button id="addCourier">Добавить курьера</button>
+<button id="removeCourier">Убрать курьера</button>
+<button id="createOrder">Создать заказ</button>
+<button id="assignOrder">Назначить заказ</button>
+</div>
+<div id="logs">
+<div id="orderLog">Лог заказов:</div>
+<div id="assignmentLog">Лог назначений:</div>
+</div>
 
-  <script>
-    ymaps.ready(init);
-
-    function init() {
-      var myMap = new ymaps.Map("map", {
-        center: [48.714325, 44.518758],
-        zoom: 12
-      });
-
-      var restaurant = new ymaps.Placemark([48.714325, 44.518758], {
-        hintContent: 'Ресторан',
-        balloonContent: 'Рабоче-Крестьянская ул., 9 Б, Волгоград'
-      }, {
-        preset: 'islands#redIcon'
-      });
-      myMap.geoObjects.add(restaurant);
-
-      var sectors = [
-        { name: 'A', color: '#FF0000' },
-        { name: 'B', color: '#00FF00' },
-        { name: 'C', color: '#0000FF' },
-        { name: 'D', color: '#FFFF00' }
-      ];
-
-      var couriers = [];
-      var orders = [];
-
-      document.getElementById('addCourier').onclick = function() {
-        var courierId = couriers.length + 1;
-        couriers.push({ id: courierId, orders: [] });
-        updateCourierLog();
-      };
-
-      document.getElementById('removeCourier').onclick = function() {
-        if (couriers.length > 0) {
-          couriers.pop();
-          updateCourierLog();
-        }
-      };
-
-      document.getElementById('createOrder').onclick = function() {
-        var order = createRandomOrder();
-        orders.push(order);
-        addOrderToMap(order);
-        updateOrderLog();
-      };
-
-      document.getElementById('assignOrder').onclick = function() {
-        if (orders.length > 0 && couriers.length > 0) {
-          assignOrderToCourier();
-          updateAssignmentLog();
-        }
-      };
-
-      function createRandomOrder() {
-        var sectorIndex = Math.floor(Math.random() * sectors.length);
-        var order = {
-          id: orders.length + 1,
-          sector: sectorIndex,
-          time: getCurrentTime()
-        };
-        return order;
-      }
-
-      function addOrderToMap(order) {
-        var sectorCoords = getSectorCoords(sectors[order.sector].name);
-        var randomPoint = getRandomPointInPolygon(sectorCoords);
-        var orderPlacemark = new ymaps.Placemark(randomPoint, {
-          hintContent: 'Заказ ' + order.id,
-          balloonContent: 'Сектор: ' + sectors[order.sector].name + '<br>Время: ' + order.time
-        }, {
-          preset: 'islands#blueDotIcon'
-        });
-        myMap.geoObjects.add(orderPlacemark);
-      }
-
-      function getRandomPointInPolygon(coords) {
-        var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        coords.forEach(function(coord) {
-          minX = Math.min(minX, coord[0]);
-          maxX = Math.max(maxX, coord[0]);
-          minY = Math.min(minY, coord[1]);
-          maxY = Math.max(maxY, coord[1]);
-        });
-        var randomX = Math.random() * (maxX - minX) + minX;
-        var randomY = Math.random() * (maxY - minY) + minY;
-        return [randomX, randomY];
-      }
-
-      function getSectorCoords(sectorName) {
-        // Реализовать на основе имеющихся данных о координатах ресторана и направлениях секторов
-      }
-
-      function assignOrderToCourier() {
-        var order = orders.shift();
-        var assignedCourier = findBestCourierForOrder(order);
-        assignedCourier.orders.push(order);
-        var assignmentLogEntry = 'Заказ ' + order.id + ' (' + sectors[order.sector].name + ') ' + order.time + ' назначен Курьеру ' + assignedCourier.id;
-        document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
-      }
-
-      function findBestCourierForOrder(order) {
-        // Реализовать алгоритм назначения заказа курьеру на основе технического задания
-      }
-
-      function getCurrentTime() {
-        var date = new Date();
-        var hours = date.getHours().toString().padStart(2, '0');
-        var minutes = date.getMinutes().toString().padStart(2, '0');
-        return hours + ':' + minutes;
-      }
-
-      function updateOrderLog() {
-        var orderLog = 'Заказы:<br>';
-        orders.forEach(function(order) {
-          orderLog += 'Заказ ' + order.id + ' (' + sectors[order.sector].name + ') ' + order.time + '<br>';
-        });
-        document.getElementById('orderLog').innerHTML = orderLog;
-      }
-
-      function updateAssignmentLog() {
-        var assignmentLog = 'Лог назначений:<br>';
-        couriers.forEach(function(courier) {
-          courier.orders.forEach(function(order) {
-            assignmentLog += 'Заказ ' + order.id + ' (' + sectors[order.sector].name + ') ' + order.time + ' назначен Курьеру ' + courier.id + '<br>';
-          });
-        });
-        document.getElementById('assignmentLog').innerHTML = assignmentLog;
-      }
-    }
+<script>
+// Ваш JavaScript код здесь
+</script>
+</body>
+</html>
