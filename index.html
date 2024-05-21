@@ -1,83 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Карта с секторами</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
-    <style>
-        html, body, #map {
-            width: 100%; height: 100%; padding: 0; margin: 0;
-        }
-    </style>
-</head>
-<body>
-<div id="map"></div>
-<script type="text/javascript">
-    ymaps.ready(init);
+import requests
+import json
 
-    function init(){
-        // Создание карты, центрированной на Волжском
-        var myMap = new ymaps.Map("map", {
-            center: [48.772430, 44.800322], // Координаты ресторана
-            zoom: 12 
-        });
+API_KEY = '0f2d1024-aa27-4ceb-b1cc-284236a7812d'
 
-        // Создаем метку на карте
-        var myPlacemark = new ymaps.Placemark([48.772430, 44.800322], {
-            hintContent: 'Ресторан',
-            balloonContent: 'Ресторан'
-        }, {
-            preset: 'islands#violetDotIcon' 
-        });
+def get_distance(coord1, coord2):
+    url = f'https://geocode-maps.yandex.ru/1.x/?geocode={coord1}&geocode={coord2}&format=json&apikey={API_KEY}'
+    response = requests.get(url)
+    data = json.loads(response.text)
+    points = data['response']['GeoObjectCollection']['featureMember']
+    distance = points[1]['GeoObject']['Point']['pos'].split(' ')
+    return float(distance[0])
 
-        myMap.geoObjects.add(myPlacemark);
+def assign_orders_to_couriers(orders, couriers):
+    assignments = {}
+    for order in orders:
+        min_time = float('inf')
+        assigned_courier = None
+        for courier in couriers:
+            delivery_time = get_distance(order['pickup'], courier['location']) + get_distance(courier['location'], order['delivery'])
+            if delivery_time < min_time:
+                min_time = delivery_time
+                assigned_courier = courier['id']
+        assignments[order['id']] = assigned_courier
+    return assignments
 
-        // Функция для создания сектора
-        function createSector(coordinates, color) {
-            var myPolygon = new ymaps.Polygon(coordinates, {}, {
-                fillColor: color,
-                opacity: 0.5,
-                strokeWidth: 0
-            });
-            myMap.geoObjects.add(myPolygon);
-        }
+# Пример использования
+orders = [
+    {'id': 1, 'pickup': '55.7522200,37.6155600', 'delivery': '55.7512440,37.6184230'},
+    {'id': 2, 'pickup': '55.7512440,37.6184230', 'delivery': '55.7533630,37.6209100'}
+]
 
-        // Координаты центра (ресторан)
-        var centerPoint = [48.772430, 44.800322]; // Широта, Долгота
+couriers = [
+    {'id': 1, 'location': '55.7533630,37.6209100'},
+    {'id': 2, 'location': '55.7512440,37.6184230'}
+]
 
-        // Определение координат для четырех прямоугольных секторов
-        var sectorSize = 2; // Размер сектора в градусах
-
-        // Сектор A (верхний правый)
-        var a1 = [centerPoint[0] - sectorSize, centerPoint[1] + sectorSize];
-        var a2 = [centerPoint[0] - sectorSize, centerPoint[1]];
-        var a3 = [centerPoint[0], centerPoint[1]];
-        var a4 = [centerPoint[0], centerPoint[1] + sectorSize];
-
-        // Сектор B (нижний правый)
-        var b1 = [centerPoint[0] - sectorSize, centerPoint[1]];
-        var b2 = [centerPoint[0] - sectorSize, centerPoint[1] - sectorSize];
-        var b3 = [centerPoint[0], centerPoint[1] - sectorSize];
-        var b4 = [centerPoint[0], centerPoint[1]];
-
-        // Сектор C (нижний левый)
-        var c1 = [centerPoint[0], centerPoint[1] - sectorSize];
-        var c2 = [centerPoint[0] + sectorSize, centerPoint[1] - sectorSize];
-        var c3 = [centerPoint[0] + sectorSize, centerPoint[1]];
-        var c4 = [centerPoint[0], centerPoint[1]];
-
-        // Сектор D (верхний левый)
-        var d1 = [centerPoint[0], centerPoint[1]];
-        var d2 = [centerPoint[0] + sectorSize, centerPoint[1]];
-        var d3 = [centerPoint[0] + sectorSize, centerPoint[1] + sectorSize];
-        var d4 = [centerPoint[0], centerPoint[1] + sectorSize];
-
-        // Создание секторов
-        createSector([[a1, a2, a3, a4]], 'rgba(255, 0, 0, 0.5)'); // Красный
-        createSector([[b1, b2, b3, b4]], 'rgba(0, 255, 0, 0.5)');  // Зеленый
-        createSector([[c1, c2, c3, c4]], 'rgba(0, 0, 255, 0.5)');  // Синий
-        createSector([[d1, d2, d3, d4]], 'rgba(255, 255, 0, 0.5)'); // Желтый
-    }
-</script>
-</body>
-</html>
+assignments = assign_orders_to_couriers(orders, couriers)
+print(assignments)
