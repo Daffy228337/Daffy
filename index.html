@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,6 +47,7 @@
   <div id="logs">
     <div id="orderLog">Лог заказов:</div>
     <div id="assignmentLog">Лог назначений:</div>
+    <div id="courierLog">Лог курьеров:</div> <!-- Добавлен элемент для лога курьеров -->
   </div>
 
   <script>
@@ -83,7 +84,7 @@
         [[48.72, 44.53], [48.72, 44.56], [48.70, 44.56], [48.70, 44.53]]
       ];
       sectorCoords.forEach(function(coords, index) {
-        var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index]});
+        var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index % sectorColors.length]});
         myMap.geoObjects.add(polygon);
         sectorPolygons.push(polygon);
       });
@@ -96,4 +97,56 @@
         couriers.push({id: courierId, orders: []});
         updateCourierLog();
       };
-      document.getElementById('removeCourier').onclick = function▌
+      document.getElementById('removeCourier').onclick = function() {
+        if (couriers.length > 0) {
+          // Удаляем последнего добавленного курьера
+          couriers.pop();
+          updateCourierLog();
+        }
+      };
+
+      // Логика для создания заказов
+      var orders = [];
+      document.getElementById('createOrder').onclick = function() {
+        // Создаем случайный заказ
+        var randomSectorIndex = Math.floor(Math.random() * sectorPolygons.length);
+        var randomSector = 'Сектор ' + String.fromCharCode(randomSectorIndex + 65); // A, Б, В, Г
+        var order = {
+          id: orders.length + 1,
+          sector: randomSectorIndex,
+          time: getCurrentTime()
+        };
+        orders.push(order);
+        addOrderToMap(order); // Функция для добавления заказа на карту
+        updateOrderLog();
+      };
+
+      // Логика для назначения заказов
+      document.getElementById('assignOrder').onclick = function() {
+        if (orders.length > 0 && couriers.length > 0) {
+          var orderToAssign = orders.shift();
+          var assignedCourier = findLeastBusyCourier(); // Упрощенный вариант, без учета сектора
+          assignedCourier.orders.push(orderToAssign);
+          var assignmentLogEntry = 'Заказ ' + orderToAssign.id +
+            ' (' + String.fromCharCode(orderToAssign.sector + 65) + ') ' +
+            orderToAssign.time + ' назначен Курьеру ' + assignedCourier.id;
+          document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
+          updateOrderLog(); // Обновляем лог после назначения
+          updateCourierLog(); // Обновляем лог курьеров после назначения
+        }
+      };
+
+      // Функция для добавления заказа на карту
+      function addOrderToMap(order) {
+        var randomPoint = getRandomPointInPolygon(sectorPolygons[order.sector].geometry.getCoordinates()[0]);
+        var orderPlacemark = new ymaps.Placemark(randomPoint, {
+          hintContent: 'Заказ ' + order.id,
+          balloonContent: 'Сектор: ' + String.fromCharCode(order.sector + 65) + '<br>Время: ' + order.time
+        }, {
+          preset: 'islands#blueDotIcon'
+        });
+        myMap.geoObjects.add(orderPlacemark);
+      }
+
+      // Функция для получения случайной точки внутри полигона
+      function getRandomPointInPolygon(
