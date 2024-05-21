@@ -1,84 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Яндекс Карты: Волжский</title>
-  <meta charset="utf-8">
-  <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
-  <style>
-    #map {
-      height: 500px;
-      width: 100%;
-    }
-  </style>
+    <title>Карта с секторами</title>
+    <meta http-equiv="Content-Type" content/html; charset=utf-8" />
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        html, body, #map {
+            width: 100%; height: 100%; padding: 0; margin: 0;
+        }
+    </style>
 </head>
 <body>
-  <div id="map"></div>
-  <script>
+<div id="map"></div>
+<script type="text/javascript">
     ymaps.ready(init);
 
-    function init() {
-      var myMap = new ymaps.Map('map', {
-        center: [48.772257, 44.800301], // Центр карты - точка ресторана
-        zoom: 12, // Уменьшаем масштаб для отображения всего города
-        controls: ['zoomControl']
-      });
+    function init(){
+        // Создание карты, центрированной на Волжском
+        var myMap = new ymaps.Map("map", {
+            center: [48.772145, 44.799744], // Координаты ресторана
+            zoom: 12 
+        });
 
-      // Точка ресторана
-      var restaurantCoords = [48.772257, 44.800301];
-      var placemark = new ymaps.Placemark(restaurantCoords, {
-        balloonContent: 'Ресторан'
-      }, {
-        preset: 'islands#redDotIcon',
-        draggable: false
-      });
+        // Создаем метку на карте 
+        var myPlacemark = new ymaps.Placemark([48.772145, 44.799744], {
+            hintContent: 'Ресторан',
+            balloonContent: 'Ресторан'
+        }, {
+            preset: 'islands#violetDotIcon' 
+        });
 
-      // Сектора (расширенные границы)
-      var sector1 = new ymaps.Polygon([
-        restaurantCoords, // Точка ресторана
-        [restaurantCoords[0], restaurantCoords[1] + 0.1], // Восточная граница
-        [restaurantCoords[0] + 0.1, restaurantCoords[1] + 0.1], // Южная граница
-        [restaurantCoords[0] + 0.1, restaurantCoords[1]] // Западная граница
-      ], {
-        fillColor: '#FF0000', // Красный
-        fillOpacity: 0.5
-      });
+        myMap.geoObjects.add(myPlacemark);
 
-      var sector2 = new ymaps.Polygon([
-        restaurantCoords, // Точка ресторана
-        [restaurantCoords[0], restaurantCoords[1] - 0.1], // Западная граница
-        [restaurantCoords[0] + 0.1, restaurantCoords[1] - 0.1], // Южная граница
-        [restaurantCoords[0] + 0.1, restaurantCoords[1]] // Восточная граница
-      ], {
-        fillColor: '#00FF00', // Зеленый
-        fillOpacity: 0.5
-      });
+        // Функция для создания сектора
+        function createSector(coordinates, color) {
+            var myPolygon = new ymaps.Polygon([
+                coordinates
+            ], {}, {
+                fillColor: color,
+                opacity: 0.5,
+                strokeWidth: 0
+            });
+            myMap.geoObjects.add(myPolygon);
+        }
 
-      var sector3 = new ymaps.Polygon([
-        restaurantCoords, // Точка ресторана
-        [restaurantCoords[0], restaurantCoords[1] + 0.1], // Восточная граница
-        [restaurantCoords[0] - 0.1, restaurantCoords[1] + 0.1], // Северная граница
-        [restaurantCoords[0] - 0.1, restaurantCoords[1]] // Западная граница
-      ], {
-        fillColor: '#0000FF', // Синий
-        fillOpacity: 0.5
-      });
+        // Координаты центра (ресторан)
+        var centerPoint = [48.772145, 44.799744];
 
-      var sector4 = new ymaps.Polygon([
-        restaurantCoords, // Точка ресторана
-        [restaurantCoords[0], restaurantCoords[1] - 0.1], // Западная граница
-        [restaurantCoords[0] - 0.1, restaurantCoords[1] - 0.1], // Северная граница
-        [restaurantCoords[0] - 0.1, restaurantCoords[1]] // Восточная граница
-      ], {
-        fillColor: '#FFFF00', // Желтый
-        fillOpacity: 0.5
-      });
+        // Крайние точки для секторов
+        var north = [48.84, 44.799744]; // Север
+        var east = [48.772145, 44.86]; // Восток
+        var south = [48.70, 44.799744]; // Юг
+        var west = [48.772145, 44.74]; // Запад
 
-      myMap.geoObjects.add(placemark);
-      myMap.geoObjects.add(sector1);
-      myMap.geoObjects.add(sector2);
-      myMap.geoObjects.add(sector3);
-      myMap.geoObjects.add(sector4);
+        // Создание секторов
+        createSector([centerPoint, north, east], 'rgba(255, 0, 0, 0.5)'); // Красный
+        createSector([centerPoint, east, south], 'rgba(0, 255, 0, 0.5)'); // Зеленый
+        createSector([centerPoint, south, west], 'rgba(0, 0, 255, 0.5)'); // Синий
+        createSector([centerPoint, west, north], 'rgba(255, 255, 0, 0.5)'); // Желтый
     }
-  </script>
+</script>
 </body>
 </html>
