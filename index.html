@@ -1,65 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Карта с секторами</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
+  <title>Яндекс Карты: Волжский</title>
+  <meta charset="utf-8">
+  <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
 &lang=ru_RU" type="text/javascript"></script>
-    <style>
-        html, body, #map {
-            width: 100%; height: 100%; padding: 0; margin: 0;
-        }
-    </style>
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+    }
+  </style>
 </head>
 <body>
-<div id="map"></div>
-<script type="text/javascript">
+  <div id="map"></div>
+  <script>
     ymaps.ready(init);
 
-    function init(){
-        // Создание карты, центрированной на Волжском
-        var myMap = new ymaps.Map("map", {
-            center: [48.7966, 44.7594], // Координаты Волжского
-            zoom: 15
-        });
+    function init() {
+      var myMap = new ymaps.Map('map', {
+        center: [53.3487, 48.7212], // Центр карты - Волжский
+        zoom: 14,
+        controls: ['zoomControl']
+      });
 
-        // Создаем метку на карте по адресу Александрова 18
-        var myPlacemark = new ymaps.Placemark([48.7966, 44.7594], {
-            hintContent: 'Александрова 18',
-            balloonContent: 'Ресторан'
-        }, {
-            preset: 'islands#violetDotIcon' 
-        });
+      // Адрес Александрова 18
+      var address = 'Волжский, улица Александрова, 18';
+      var placemark = new ymaps.Placemark([53.3487, 48.7212], {
+        balloonContent: address
+      }, {
+        preset: 'islands#redDotIcon',
+        draggable: false
+      });
 
-        myMap.geoObjects.add(myPlacemark);
+      // Сектора
+      var sector1 = new ymaps.Polygon([
+        [53.3487, 48.7212], // Точка Александрова
+        [53.3487, 48.7312], // Точка на востоке
+        [53.3587, 48.7312], // Точка на юге
+        [53.3587, 48.7212] // Точка на западе
+      ], {
+        fillColor: '#FF0000', // Красный
+        fillOpacity: 0.5
+      });
 
-        // Функция для создания сектора
-        function createSector(coordinates, color) {
-            var myPolygon = new ymaps.Polygon([
-                coordinates
-            ], {}, {
-                fillColor: color,
-                opacity: 0.5,
-                strokeWidth: 0
-            });
-            myMap.geoObjects.add(myPolygon);
-        }
+      var sector2 = new ymaps.Polygon([
+        [53.3487, 48.7212], // Точка Александрова
+        [53.3487, 48.7112], // Точка на западе
+        [53.3587, 48.7112], // Точка на юге
+        [53.3587, 48.7212] // Точка на востоке
+      ], {
+        fillColor: '#00FF00', // Зеленый
+        fillOpacity: 0.5
+      });
 
-        // Координаты центра (ресторан на Александрова 18)
-        var centerPoint = [48.7966, 44.7594]; 
+      var sector3 = new ymaps.Polygon([
+        [53.3487, 48.7212], // Точка Александрова
+        [53.3487, 48.7312], // Точка на востоке
+        [53.3387, 48.7312], // Точка на севере
+        [53.3387, 48.7212] // Точка на западе
+      ], {
+        fillColor: '#0000FF', // Синий
+        fillOpacity: 0.5
+      });
 
-        // Координаты углов секторов (примерные, нужно настроить)
-        var northEast = [48.8000, 44.7650]; 
-        var southEast = [48.7930, 44.7650]; 
-        var southWest = [48.7930, 44.7540]; 
-        var northWest = [48.8000, 44.7540]; 
+      var sector4 = new ymaps.Polygon([
+        [53.3487, 48.7212], // Точка Александрова
+        [53.3487, 48.7112], // Точка на западе
+        [53.3387, 48.7112], // Точка на севере
+        [53.3387, 48.7212] // Точка на востоке
+      ], {
+        fillColor: '#FFFF00', // Желтый
+        fillOpacity: 0.5
+      });
 
-        // Создание секторов
-        createSector([centerPoint, northEast, southEast], 'rgba(255, 0, 0, 0.5)'); // Красный
-        createSector([centerPoint, southEast, southWest], 'rgba(0, 255, 0, 0.5)'); // Зеленый
-        createSector([centerPoint, southWest, northWest], 'rgba(0, 0, 255, 0.5)'); // Синий
-        createSector([centerPoint, northWest, northEast], 'rgba(255, 255, 0, 0.5)'); // Желтый
+      myMap.geoObjects.add(placemark);
+      myMap.geoObjects.add(sector1);
+      myMap.geoObjects.add(sector2);
+      myMap.geoObjects.add(sector3);
+      myMap.geoObjects.add(sector4);
     }
-</script>
+  </script>
 </body>
 </html>
