@@ -1,44 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Доставка Волгоград</title>
+    <title>Автоматическая доставка в Волгограде</title>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d" type="text/javascript"></script>
     <style>
-        /* Ваши стили */
+        /* Стили опущены для краткости */
     </style>
 </head>
 <body>
-    <div id="map" style="width: 100%; height: 500px;"></div>
-    <div id="controls">
+    <div id="map" style="width: 100%; height: 80vh;"></div>
+    <div id="controls" style="position: absolute; top: 10px; right: 10px;">
         <button id="addCourier">Прибавить курьера</button>
         <button id="removeCourier">Убрать курьера</button>
         <button id="createOrder">Создать заказ</button>
         <button id="assignOrders">Назначить заказы</button>
     </div>
-    <div id="log"></div>
+    <div id="ordersLog" style="position: absolute; bottom: 10px; left: 10px; right: 10px;"></div>
 
     <script>
         ymaps.ready(init);
 
-        var map, sectors, couriers = [], orders = [], courierCount = 1;
+        var map, sectors = [], couriers = [], orders = [], courierCount = 1;
 
         function init() {
-            // Создание карты и отображение секторов
-            map = new ymaps.Map('map', {
+            map = new ymaps.Map("map", {
                 center: [48.707103, 44.516939], // Координаты ресторана
                 zoom: 12
             });
-            drawSectors();
-            
-            // Подключение кнопок
+
+            sectors = createSectors(); // Создание секторов
+            sectors.forEach(function(sector) {
+                map.geoObjects.add(sector);
+            });
+
+            setupControls(); // Подключение кнопок
+            updateCouriers();
+        }
+
+        function createSectors() {
+            // Логика создания секторов
+            return [
+                // Пример сектора, реализуйте остальные
+            ];
+        }
+
+        function setupControls() {
             document.getElementById('addCourier').addEventListener('click', addCourier);
             document.getElementById('removeCourier').addEventListener('click', removeCourier);
             document.getElementById('createOrder').addEventListener('click', createOrder);
             document.getElementById('assignOrders').addEventListener('click', assignOrders);
-        }
-
-        function drawSectors() {
-            // Логика отрисовки секторов
         }
 
         function addCourier() {
@@ -52,30 +62,58 @@
         }
 
         function updateCouriers() {
-            // Обновление информации о курьерах
-            var courierList = document.getElementById('courierList');
-            courierList.innerHTML = '';
-            for (var i = 1; i <= courierCount; i++) {
-                var li = document.createElement('li');
-                li.textContent = 'Курьер №' + i;
-                courierList.appendChild(li);
-            }
+            var courierList = document.getElementById('courierStatus');
+            courierList.innerHTML = 'Курьеров: ' + courierCount;
         }
 
         function createOrder() {
-            // Логика создания заказа
+            var randomSector = sectors[Math.floor(Math.random() * sectors.length)];
+            var order = {
+                id: Date.now(), // уникальный ID заказа
+                sector: randomSector,
+                status: 'Новый'
+            };
+            orders.push(order);
+            updateOrdersLog();
         }
 
         function assignOrders() {
-            // Логика назначения заказов
+            // Реализация алгоритма назначения заказов согласно ТЗ
+            orders.forEach(function(order) {
+                var bestCourier = findBestCourierForOrder(order);
+                if (bestCourier) {
+                    bestCourier.orders.push(order.id);
+                    order.status = 'Назначен';
+                }
+            });
+            updateCouriersOrdersDisplay();
+            updateOrdersLog();
         }
 
-        function updateLog(message) {
-            // Логирование заказов
-            var log = document.getElementById('log');
-            var p = document.createElement('p');
-            p.textContent = message;
-            log.appendChild(p);
+        function findBestCourierForOrder(order) {
+            // Логика поиска оптимального курьера для заказа
+            return couriers.reduce((best, courier) => {
+                // Реализуйте сравнение по нагрузке и направлению
+                return best;
+            }, null);
+        }
+
+        function updateOrdersLog() {
+            var log = document.getElementById('ordersLog');
+            log.innerHTML = '<h3>Лог заказов</h3>';
+            orders.forEach(function(order) {
+                var p = document.createElement('p');
+                p.textContent = 'Заказ #' + order.id + ', Сектор: ' + order.sector + ', Статус: ' + order.status;
+                log.appendChild(p);
+            });
+        }
+
+        function updateCouriersOrdersDisplay() {
+            // Обновление информации о заказах у каждого курьера
+            couriers.forEach((courier, index) => {
+                var courierDiv = document.getElementById(`courier${index + 1}Orders`);
+                courierDiv.innerHTML = 'Заказы: ' + (courier.orders || []).join(', ');
+            });
         }
     </script>
 </body>
