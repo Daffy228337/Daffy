@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Карта с секторами</title>
-    <meta http-equiv="Content-Type" content/html; charset=utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
     <style>
         html, body, #map {
@@ -18,12 +18,12 @@
     function init(){
         // Создание карты, центрированной на Волжском
         var myMap = new ymaps.Map("map", {
-            center: [48.772145, 44.799744], // Координаты ресторана
+            center: [48.772430, 44.800322], // Координаты ресторана
             zoom: 12 
         });
 
-        // Создаем метку на карте 
-        var myPlacemark = new ymaps.Placemark([48.772145, 44.799744], {
+        // Создаем метку на карте
+        var myPlacemark = new ymaps.Placemark([48.772430, 44.800322], {
             hintContent: 'Ресторан',
             balloonContent: 'Ресторан'
         }, {
@@ -34,9 +34,7 @@
 
         // Функция для создания сектора
         function createSector(coordinates, color) {
-            var myPolygon = new ymaps.Polygon([
-                coordinates
-            ], {}, {
+            var myPolygon = new ymaps.Polygon(coordinates, {}, {
                 fillColor: color,
                 opacity: 0.5,
                 strokeWidth: 0
@@ -45,13 +43,13 @@
         }
 
         // Координаты центра (ресторан)
-        var centerPoint = [44.799744, 48.772145]; // Долгота, Широта
+        var centerPoint = [48.772430, 44.800322]; // Широта, Долгота
 
-        // Крайние точки для секторов (долгота, широта)
-        var north = [44.799744, 48.84];   // Север
-        var east =  [44.86, 48.772145];   // Восток
-        var south = [44.799744, 48.70];   // Юг
-        var west =  [44.74, 48.772145];   // Запад
+        // Крайние точки для секторов (широта, долгота)
+        var north = [48.84, 44.800322];   // Север
+        var east =  [48.772430, 44.86];   // Восток
+        var south = [48.70, 44.800322];   // Юг
+        var west =  [48.772430, 44.74];   // Запад
 
         // Создание секторов
         createSector([centerPoint, north, east], 'rgba(255, 0, 0, 0.5)'); // Красный
