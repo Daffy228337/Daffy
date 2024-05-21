@@ -1,108 +1,135 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <title>Автоматическая доставка в Волгограде</title>
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d" type="text/javascript"></script>
-    <style>
-        /* CSS стили опущены для краткости */
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Автораспределение заказов</title>
+<!-- Подключаем Яндекс Maps API -->
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d" type="text/javascript"></script>
+<style>
+  html, body, #map {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+  }
+</style>
 </head>
 <body>
-    <div id="map" style="width: 100%; height: 80vh;"></div>
-    <div id="controls" style="position: absolute; top: 10px; right: 10px;">
-        <button id="addCourier">Прибавить курьера</button>
-        <button id="removeCourier">Убрать курьера</button>
-        <button id="createOrder">Создать заказ</button>
-        <button id="assignOrders">Назначить заказы</button>
-    </div>
-    <div id="ordersLog" style="position: absolute; bottom: 10px; left: 10px; right: 10px;"></div>
-    <div id="couriersLog" style="position: absolute; top: 10px; left: 10px; right: 10px;"></div>
 
-    <script>
-        ymaps.ready(init);
+<div id="map"></div>
+<button id="addCourier">Добавить курьера</button>
+<button id="removeCourier">Убрать курьера</button>
+<button id="createOrder">Создать заказ</button>
+<button id="assignOrder">Назначить заказ</button>
 
-        var map, sectors = [], couriers = [], orders = [], courierCount = 1;
-        var restaurantCoords = [48.707103, 44.516939]; // Координаты ресторана
+<div id="orderLog">Лог заказов:</div>
+<div id="assignmentLog">Лог назначений:</div>
 
-        function init() {
-            map = new ymaps.Map("map", {
-                center: restaurantCoords,
-                zoom: 12
-            });
+<script>
+// Вставьте ваш API ключ вместо '0f2d1024-aa27-4ceb-b1cc-284236a7812d'
+ymaps.ready(init);
+function init() {
+  var myMap = new ymaps.Map("map", {
+    center: [48.714325, 44.518758], // Координаты Волгограда
+    zoom: 12
+  });
 
-            sectors = createSectors(map, restaurantCoords); // Создание и отображение секторов
-            setupControls();
-            updateCouriers();
-            placeRestaurantMarker();
-        }
+  // Добавляем ресторан на карту
+  var restaurant = new ymaps.Placemark([48.714325, 44.518758], {
+    hintContent: 'Ресторан',
+    balloonContent: 'Рабоче-Крестьянская ул., 9 Б, Волгоград'
+  }, {
+    preset: 'islands#redIcon'
+  });
+  myMap.geoObjects.add(restaurant);
 
-        function createSectors(map, center) {
-            // Логика создания и отображения секторов на карте
-            var sectorsGeoObjects = [];
-            // Реализуйте логику создания и добавления секторов на карту с цветами
-            return sectorsGeoObjects;
-        }
+  // Создаем сектора
+  var sectorPolygons = [];
+  var sectorColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
+  var sectorCoords = [
+    // Сектор А
+    [[48.72, 44.50], [48.72, 44.53], [48.70, 44.53], [48.70, 44.50]],
+    // Сектор Б
+    [[48.70, 44.50], [48.70, 44.53], [48.68, 44.53], [48.68, 44.50]],
+    // Сектор В
+    [[48.70, 44.53], [48.70, 44.56], [48.68, 44.56], [48.68, 44.53]],
+    // Сектор Г
+    [[48.72, 44.53], [48.72, 44.56], [48.70, 44.56], [48.70, 44.53]]
+  ];
+  sectorCoords.forEach(function(coords, index) {
+    var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index % sectorColors.length]});
+    myMap.geoObjects.add(polygon);
+    sectorPolygons.push(polygon);
+  });
 
-        function setupControls() {
-            // Подключение кнопок
-            document.getElementById('addCourier').addEventListener('click', addCourier);
-            document.getElementById('removeCourier').addEventListener('click', removeCourier);
-            document.getElementById('createOrder').addEventListener('click', createOrder);
-            document.getElementById('assignOrders').addEventListener('click', assignOrders);
-        }
+  // Логика для добавления и удаления курьеров
+  var couriers = [];
+  document.getElementById('addCourier').onclick = function() {
+    // Добавляем курьера (здесь можно добавить метку на карту)
+    couriers.push('Курьер ' + (couriers.length + 1));
+    updateCourierLog();
+  };
+  document.getElementById('removeCourier').onclick = function() {
+    if (couriers.length > 0) {
+      // Удаляем последнего добавленного курьера
+      couriers.pop();
+      updateCourierLog();
+    }
+  };
 
-        function addCourier() { /* ... */ }
-        function removeCourier() { /* ... */ }
-        function updateCouriers() { /* ... */ }
+  // Логика для создания заказов
+  var orders = [];
+  document.getElementById('createOrder').onclick = function() {
+    // Создаем случайный заказ
+    var randomSectorIndex = Math.floor(Math.random() * sectorPolygons.length);
+    var randomSector = 'Сектор ' + String.fromCharCode(randomSectorIndex + 65); // A, Б, В, Г
+    var order = 'Заказ ' + (orders.length + 1) + ' ' + randomSector + ' ' + getCurrentTime();
+    orders.push({order: order, sector: randomSectorIndex});
+    addOrderToMap(randomSectorIndex); // Функция для добавления заказа на карту
+    updateOrderLog();
+  };
 
-        function placeRestaurantMarker() {
-            // Метка ресторана
-            var restaurantPlacemark = new ymaps.Placemark(restaurantCoords, {
-                hintContent: 'Ресторан',
-                balloonContent: 'Рабоче-Крестьянская ул., 9 Б'
-            }, {
-                preset: 'islands#redDotIcon'
-            });
-            map.geoObjects.add(restaurantPlacemark);
-        }
+  // Логика для назначения заказов
+  document.getElementById('assignOrder').onclick = function() {
+    if (orders.length > 0 && couriers.length > 0) {
+      // Здесь должна быть ваша логика назначения заказов на курьеров
+      var orderToAssign = orders.shift();
+      var assignedCourier = findLeastBusyCourier(orderToAssign.sector);
+      var assignmentLogEntry = orderToAssign.order + ' назначен ' + assignedCourier;
+      document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
+      updateOrderLog(); // Обновляем лог после назначения
+    }
+  };
 
-        function createOrder() {
-            var randomSector = sectors[Math.floor(Math.random() * sectors.length)];
-            var order = {
-                id: Date.now(), // уникальный ID заказа
-                sector: randomSector,
-                status: 'Новый',
-                coords: getCoordsInSector(randomSector)
-            };
-            orders.push(order);
-            updateOrdersLog();
-            addOrderToMap(order);
-        }
+  // Функция для добавления заказа на карту
+  function addOrderToMap(sectorIndex) {
+    var randomPoint = getRandomPointInPolygon(sectorPolygons[sectorIndex].geometry.getCoordinates()[0]);
+    var orderPlacemark = new ymaps.Placemark(randomPoint, {
+      hintContent: 'Новый заказ',
+      balloonContent: 'Заказ создан'
+    }, {
+      preset: 'islands#blueDotIcon'
+    });
+    myMap.geoObjects.add(orderPlacemark);
+  }
 
-        function addOrderToMap(order) {
-            // Добавление маркера заказа на карту
-            var orderPlacemark = new ymaps.Placemark(order.coords, {
-                hintContent: 'Заказ #' + order.id,
-                balloonContent: 'Статус: ' + order.status
-            }, {
-                preset: 'islands#greenDotIcon'
-            });
-            map.geoObjects.add(orderPlacemark);
-        }
+  // Функция для получения случайной точки внутри полигона
+  function getRandomPointInPolygon(coords) {
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    coords.forEach(function(coord) {
+      minX = Math.min(minX, coord[0]);
+      maxX = Math.max(maxX, coord[0]);
+      minY = Math.min(minY, coord[1]);
+      maxY = Math.max(maxY, coord[1]);
+    });
+    var randomX = Math.random() * (maxX - minX) + minX;
+    var randomY = Math.random() * (maxY - minY) + minY;
+    return [randomX, randomY];
+  }
 
-        function updateOrdersLog() { /* ... */ }
-        function updateCouriersLog() {
-            var couriersLog = document.getElementById('couriersLog');
-            couriersLog.innerHTML = '<h3>Лог курьеров</h3>';
-            couriers.forEach((_, index) => {
-                var p = document.createElement('p');
-                p.textContent = 'Курьер №' + (index + 1);
-                couriersLog.appendChild(p);
-            });
-        }
-
-        function assignOrders() { /* ... */ }
-        function findBestCourierForOrder(order) { /* ... */ }
-    </script>
-</body>
-</html>
+  // Функция для поиска курьера с наименьшей нагрузкой
+  function findLeastBusyCourier(sectorIndex) {
+    // Здесь должна быть ваша логика определения наименьшей нагрузки
+    // Упрощенный пример: выбираем первого доступного курьера
+    return
