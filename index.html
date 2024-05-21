@@ -1,61 +1,82 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Демонстрация Автоматического Распределения Заказов</title>
-    <!-- Вставьте свой API ключ здесь -->
+    <title>Доставка Волгоград</title>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d" type="text/javascript"></script>
     <style>
-        #map {
-            height: 500px;
-            width: 100%;
-        }
-        /* Добавьте дополнительный CSS по необходимости */
+        /* Ваши стили */
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <button onclick="addCourier()">Прибавить курьера</button>
-    <button onclick="removeCourier()">Убрать курьера</button>
-    <button onclick="createRandomOrder()">Создать заказ</button>
-    <button onclick="assignOrders()">Назначить заказы</button>
-    <div id="orderLog">Лог заказов:</div>
+    <div id="map" style="width: 100%; height: 500px;"></div>
+    <div id="controls">
+        <button id="addCourier">Прибавить курьера</button>
+        <button id="removeCourier">Убрать курьера</button>
+        <button id="createOrder">Создать заказ</button>
+        <button id="assignOrders">Назначить заказы</button>
+    </div>
+    <div id="log"></div>
+
     <script>
-        let couriers = [];
-        let restaurantCoords = [48.707103, 44.516939]; // Координаты ресторана в Волгограде
-        let sectorLines; // Линии, разделяющие сектора
-        let orders = []; // Список заказов
-        
         ymaps.ready(init);
 
+        var map, sectors, couriers = [], orders = [], courierCount = 1;
+
         function init() {
-            var myMap = new ymaps.Map("map", {
-                center: restaurantCoords,
+            // Создание карты и отображение секторов
+            map = new ymaps.Map('map', {
+                center: [48.707103, 44.516939], // Координаты ресторана
                 zoom: 12
             });
+            drawSectors();
+            
+            // Подключение кнопок
+            document.getElementById('addCourier').addEventListener('click', addCourier);
+            document.getElementById('removeCourier').addEventListener('click', removeCourier);
+            document.getElementById('createOrder').addEventListener('click', createOrder);
+            document.getElementById('assignOrders').addEventListener('click', assignOrders);
+        }
 
-            // Отрисовка секторов и других начальных элементов
-            drawSectors(myMap);
-            // Добавьте начальных курьеров
-            for (let i = 1; i <= 1; i++) {
-                addCourier(i, myMap);
+        function drawSectors() {
+            // Логика отрисовки секторов
+        }
+
+        function addCourier() {
+            if (courierCount < 5) courierCount++;
+            updateCouriers();
+        }
+
+        function removeCourier() {
+            if (courierCount > 1) courierCount--;
+            updateCouriers();
+        }
+
+        function updateCouriers() {
+            // Обновление информации о курьерах
+            var courierList = document.getElementById('courierList');
+            courierList.innerHTML = '';
+            for (var i = 1; i <= courierCount; i++) {
+                var li = document.createElement('li');
+                li.textContent = 'Курьер №' + i;
+                courierList.appendChild(li);
             }
         }
 
-        // Остальной код для функций addCourier, removeCourier, createRandomOrder, assignOrders, drawSectors и логики распределения заказов
-        
-        // Пример функции для добавления курьера
-        function addCourier(id, map) {
-            // Реализация добавления курьера на карту и в список
+        function createOrder() {
+            // Логика создания заказа
         }
-        
-        // Пример функции для удаления курьера
-        function removeCourier() {
-            // Реализация удаления последнего курьера из списка
+
+        function assignOrders() {
+            // Логика назначения заказов
         }
-        
-        // И так далее для остальных функций
-        
+
+        function updateLog(message) {
+            // Логирование заказов
+            var log = document.getElementById('log');
+            var p = document.createElement('p');
+            p.textContent = message;
+            log.appendChild(p);
+        }
     </script>
 </body>
 </html>
