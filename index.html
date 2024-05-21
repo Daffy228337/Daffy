@@ -1,152 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Автораспределение заказов</title>
-  <!-- Подключаем Яндекс Maps API -->
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
-" type="text/javascript"></script>
-  <style>
-    html, body, #map {
-      width: 100%;
-      height: 100%;
-      padding: 0;
-      margin: 0;
-    }
-    #controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background-color: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    #logs {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background-color: white;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-      max-height: 200px;
-      overflow-y: auto;
-    }
-  </style>
+    <title>Карта с секторами</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
+&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        html, body, #map {
+            width: 100%; height: 100%; padding: 0; margin: 0;
+        }
+    </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="controls">
-    <button id="addCourier">Добавить курьера</button>
-    <button id="removeCourier">Убрать курьера</button>
-    <button id="createOrder">Создать заказ</button>
-    <button id="assignOrder">Назначить заказ</button>
-  </div>
-  <div id="logs">
-    <div id="orderLog">Лог заказов:</div>
-    <div id="assignmentLog">Лог назначений:</div>
-    <div id="courierLog">Лог курьеров:</div> <!-- Добавлен элемент для лога курьеров -->
-  </div>
-
-  <script>
-    // Вставьте ваш API ключ вместо '0f2d1024-aa27-4ceb-b1cc-284236a7812d
-'
+<div id="map"></div>
+<script type="text/javascript">
     ymaps.ready(init);
 
-    function init() {
-      var myMap = new ymaps.Map("map", {
-        center: [48.714325, 44.518758], // Координаты Волгограда
-        zoom: 12
-      });
-
-      // Добавляем ресторан на карту
-      var restaurant = new ymaps.Placemark([48.714325, 44.518758], {
-        hintContent: 'Ресторан',
-        balloonContent: 'Рабоче-Крестьянская ул., 9 Б, Волгоград'
-      }, {
-        preset: 'islands#redIcon'
-      });
-      myMap.geoObjects.add(restaurant);
-
-      // Создаем сектора
-      var sectorPolygons = [];
-      var sectorColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
-      var sectorCoords = [
-        // Сектор А
-        [[48.72, 44.50], [48.72, 44.53], [48.70, 44.53], [48.70, 44.50]],
-        // Сектор Б
-        [[48.70, 44.50], [48.70, 44.53], [48.68, 44.53], [48.68, 44.50]],
-        // Сектор В
-        [[48.70, 44.53], [48.70, 44.56], [48.68, 44.56], [48.68, 44.53]],
-        // Сектор Г
-        [[48.72, 44.53], [48.72, 44.56], [48.70, 44.56], [48.70, 44.53]]
-      ];
-      sectorCoords.forEach(function(coords, index) {
-        var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index % sectorColors.length]});
-        myMap.geoObjects.add(polygon);
-        sectorPolygons.push(polygon);
-      });
-
-      // Логика для добавления и удаления курьеров
-      var couriers = [];
-      document.getElementById('addCourier').onclick = function() {
-        // Добавляем курьера
-        var courierId = couriers.length + 1;
-        couriers.push({id: courierId, orders: []});
-        updateCourierLog();
-      };
-      document.getElementById('removeCourier').onclick = function() {
-        if (couriers.length > 0) {
-          // Удаляем последнего добавленного курьера
-          couriers.pop();
-          updateCourierLog();
-        }
-      };
-
-      // Логика для создания заказов
-      var orders = [];
-      document.getElementById('createOrder').onclick = function() {
-        // Создаем случайный заказ
-        var randomSectorIndex = Math.floor(Math.random() * sectorPolygons.length);
-        var randomSector = 'Сектор ' + String.fromCharCode(randomSectorIndex + 65); // A, Б, В, Г
-        var order = {
-          id: orders.length + 1,
-          sector: randomSectorIndex,
-          time: getCurrentTime()
-        };
-        orders.push(order);
-        addOrderToMap(order); // Функция для добавления заказа на карту
-        updateOrderLog();
-      };
-
-      // Логика для назначения заказов
-      document.getElementById('assignOrder').onclick = function() {
-        if (orders.length > 0 && couriers.length > 0) {
-          var orderToAssign = orders.shift();
-          var assignedCourier = findLeastBusyCourier(); // Упрощенный вариант, без учета сектора
-          assignedCourier.orders.push(orderToAssign);
-          var assignmentLogEntry = 'Заказ ' + orderToAssign.id +
-            ' (' + String.fromCharCode(orderToAssign.sector + 65) + ') ' +
-            orderToAssign.time + ' назначен Курьеру ' + assignedCourier.id;
-          document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
-          updateOrderLog(); // Обновляем лог после назначения
-          updateCourierLog(); // Обновляем лог курьеров после назначения
-        }
-      };
-
-      // Функция для добавления заказа на карту
-      function addOrderToMap(order) {
-        var randomPoint = getRandomPointInPolygon(sectorPolygons[order.sector].geometry.getCoordinates()[0]);
-        var orderPlacemark = new ymaps.Placemark(randomPoint, {
-          hintContent: 'Заказ ' + order.id,
-          balloonContent: 'Сектор: ' + String.fromCharCode(order.sector + 65) + '<br>Время: ' + order.time
-        }, {
-          preset: 'islands#blueDotIcon'
+    function init(){
+        // Создание карты, центрированной на Волжском
+        var myMap = new ymaps.Map("map", {
+            center: [48.7966, 44.7594], // Координаты Волжского
+            zoom: 15
         });
-        myMap.geoObjects.add(orderPlacemark);
-      }
 
-      // Функция для получения случайной точки внутри полигона
-      function getRandomPointInPolygon(
+        // Создаем метку на карте по адресу Александрова 18
+        var myPlacemark = new ymaps.Placemark([48.7966, 44.7594], {
+            hintContent: 'Александрова 18',
+            balloonContent: 'Ресторан'
+        }, {
+            preset: 'islands#violetDotIcon' 
+        });
+
+        myMap.geoObjects.add(myPlacemark);
+
+        // Функция для создания сектора
+        function createSector(coordinates, color) {
+            var myPolygon = new ymaps.Polygon([
+                coordinates
+            ], {}, {
+                fillColor: color,
+                opacity: 0.5,
+                strokeWidth: 0
+            });
+            myMap.geoObjects.add(myPolygon);
+        }
+
+        // Координаты центра (ресторан на Александрова 18)
+        var centerPoint = [48.7966, 44.7594]; 
+
+        // Координаты углов секторов (примерные, нужно настроить)
+        var northEast = [48.8000, 44.7650]; 
+        var southEast = [48.7930, 44.7650]; 
+        var southWest = [48.7930, 44.7540]; 
+        var northWest = [48.8000, 44.7540]; 
+
+        // Создание секторов
+        createSector([centerPoint, northEast, southEast], 'rgba(255, 0, 0, 0.5)'); // Красный
+        createSector([centerPoint, southEast, southWest], 'rgba(0, 255, 0, 0.5)'); // Зеленый
+        createSector([centerPoint, southWest, northWest], 'rgba(0, 0, 255, 0.5)'); // Синий
+        createSector([centerPoint, northWest, northEast], 'rgba(255, 255, 0, 0.5)'); // Желтый
+    }
+</script>
+</body>
+</html>
