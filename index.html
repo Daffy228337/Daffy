@@ -81,7 +81,11 @@
         [[48.72, 44.53], [48.72, 44.56], [48.70, 44.56], [48.70, 44.53]]
       ];
       sectorCoords.forEach(function(coords, index) {
-        var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index % sectorColors.length]});
+        var polygon = new ymaps.Polygon(coords, {}, {
+          fillColor: sectorColors[index % sectorColors.length],
+          // Делаем сектора полупрозрачными
+          fillOpacity: 0.5
+        });
         myMap.geoObjects.add(polygon);
         sectorPolygons.push(polygon);
       });
