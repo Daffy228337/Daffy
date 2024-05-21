@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Демонстрационная версия распределения заказов между курьерами</title>
+  <title>Автораспределение заказов</title>
   <!-- Подключаем Яндекс Maps API -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d
 " type="text/javascript"></script>
@@ -34,14 +34,6 @@
       max-height: 200px;
       overflow-y: auto;
     }
-    .sector-label {
-      position: absolute;
-      background-color: white;
-      padding: 5px;
-      border-radius: 3px;
-      border: 1px solid #ccc;
-      z-index: 1000;
-    }
   </style>
 </head>
 <body>
@@ -58,16 +50,9 @@
   </div>
 
   <script>
+    // Вставьте ваш API ключ вместо '0f2d1024-aa27-4ceb-b1cc-284236a7812d
+'
     ymaps.ready(init);
-
-    var couriers = [];
-    var orders = [];
-    var sectors = [
-      { name: 'A', color: '#FF0000' },
-      { name: 'B', color: '#00FF00' },
-      { name: 'C', color: '#0000FF' },
-      { name: 'D', color: '#FFFF00' }
-    ];
 
     function init() {
       var myMap = new ymaps.Map("map", {
@@ -84,7 +69,9 @@
       });
       myMap.geoObjects.add(restaurant);
 
-      // Размечаем сектора
+      // Создаем сектора
+      var sectorPolygons = [];
+      var sectorColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
       var sectorCoords = [
         // Сектор А
         [[48.72, 44.50], [48.72, 44.53], [48.70, 44.53], [48.70, 44.50]],
@@ -96,78 +83,121 @@
         [[48.72, 44.53], [48.72, 44.56], [48.70, 44.56], [48.70, 44.53]]
       ];
       sectorCoords.forEach(function(coords, index) {
-        var polygon = new ymaps.Polygon(coords, {}, {
-          fillColor: sectors[index].color,
-          fillOpacity: 0.5
-        });
+        var polygon = new ymaps.Polygon(coords, {}, {fillColor: sectorColors[index % sectorColors.length]});
         myMap.geoObjects.add(polygon);
-
-        // Добавляем метку с названием сектора
-        var sectorLabel = new ymaps.Placemark(getCentroid(coords), {
-          hintContent: 'Сектор ' + sectors[index].name
-        }, {
-          iconLayout: 'default#image',
-          iconImageHref: 'sector-label.png',
-          iconImageSize: [100, 30],
-          iconImageOffset: [-50, -15]
-        });
-        myMap.geoObjects.add(sectorLabel);
+        sectorPolygons.push(polygon);
       });
 
-      // Логика кнопок
+      // Логика для добавления и удаления курьеров
+      var couriers = [];
       document.getElementById('addCourier').onclick = function() {
-        couriers.push({ id: couriers.length + 1, orders: [] });
+        // Добавляем курьера
+        var courierId = couriers.length + 1;
+        couriers.push({id: courierId, orders: []});
         updateCourierLog();
       };
-
       document.getElementById('removeCourier').onclick = function() {
         if (couriers.length > 0) {
+          // Удаляем последнего добавленного курьера
           couriers.pop();
           updateCourierLog();
         }
       };
 
+      // Логика для создания заказов
+      var orders = [];
       document.getElementById('createOrder').onclick = function() {
-        var order = createRandomOrder();
+        // Создаем случайный заказ
+        var randomSectorIndex = Math.floor(Math.random() * sectorPolygons.length);
+        var randomSector = 'Сектор ' + String.fromCharCode(randomSectorIndex + 65); // A, Б, В, Г
+        var order = {
+          id: orders.length + 1,
+          sector: randomSectorIndex,
+          time: getCurrentTime()
+        };
         orders.push(order);
-        addOrderToMap(order);
+        addOrderToMap(order); // Функция для добавления заказа на карту
         updateOrderLog();
       };
 
+      // Логика для назначения заказов
       document.getElementById('assignOrder').onclick = function() {
         if (orders.length > 0 && couriers.length > 0) {
-          assignOrderToCourier();
-          updateAssignmentLog();
+          var orderToAssign = orders.shift();
+          var assignedCourier = findLeastBusyCourier(orderToAssign.sector);
+          assignedCourier.orders.push(orderToAssign);
+          var assignmentLogEntry = 'Заказ ' + orderToAssign.id +
+            ' (' + String.fromCharCode(orderToAssign.sector + 65) + ') ' +
+            orderToAssign.time + ' назначен Курьеру ' + assignedCourier.id;
+          document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
+          updateOrderLog(); // Обновляем лог после назначения
         }
       };
+
+      // Функция для добавления заказа на карту
+      function addOrderToMap(order) {
+        var randomPoint = getRandomPointInPolygon(sectorPolygons[order.sector].geometry.getCoordinates()[0]);
+        var orderPlacemark = new ymaps.Placemark(randomPoint, {
+          hintContent: 'Заказ ' + order.id,
+          balloonContent: 'Сектор: ' + String.fromCharCode(order.sector + 65) + '<br>Время: ' + order.time
+        }, {
+          preset: 'islands#blueDotIcon'
+        });
+        myMap.geoObjects.add(orderPlacemark);
+      }
+
+      // Функция для получения случайной точки внутри полигона
+      function getRandomPointInPolygon(coords) {
+        var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        coords.forEach(function(coord) {
+          minX = Math.min(minX, coord[0]);
+          maxX = Math.max(maxX, coord[0]);
+          minY = Math.min(minY, coord[1]);
+          maxY = Math.max(maxY, coord[1]);
+        });
+        var randomX = Math.random() * (maxX - minX) + minX;
+        var randomY = Math.random() * (maxY - minY) + minY;
+        return [randomX, randomY];
+      }
+
+      // Функция для поиска курьера с наименьшей нагрузкой
+      function findLeastBusyCourier(sectorIndex) {
+        // Находим курьера с наименьшим количеством заказов
+        var leastBusyCourier = couriers[0];
+        for (var i = 1; i < couriers.length; i++) {
+          if (couriers[i].orders.length < leastBusyCourier.orders.length) {
+            leastBusyCourier = couriers[i];
+          }
+        }
+        return leastBusyCourier;
+      }
+
+      // Функция для получения текущего времени в формате HH:mm
+      function getCurrentTime() {
+        var date = new Date();
+        var hours = date.getHours().toString().padStart(2, '0');
+        var minutes = date.getMinutes().toString().padStart(2, '0');
+        return hours + ':' + minutes;
+      }
+
+      // Функция для обновления лога курьеров
+      function updateCourierLog() {
+        var courierLog = 'Курьеры:<br>';
+        couriers.forEach(function(courier) {
+          courierLog += 'Курьер ' + courier.id + ' (Заказов: ' + courier.orders.length + ')<br>';
+        });
+        document.getElementById('orderLog').innerHTML = courierLog;
+      }
+
+      // Функция для обновления лога заказов
+      function updateOrderLog() {
+        var orderLog = 'Заказы:<br>';
+        orders.forEach(function(order) {
+          orderLog += 'Заказ ' + order.id + ' (' + String.fromCharCode(order.sector + 65) + ') ' + order.time + '<br>';
+        });
+        document.getElementById('orderLog').innerHTML = orderLog;
+      }
     }
-
-    function createRandomOrder() {
-      var sectorIndex = Math.floor(Math.random() * sectors.length);
-      return {
-        id: orders.length + 1,
-        sector: sectorIndex,
-        time: getCurrentTime()
-      };
-    }
-
-    function assignOrderToCourier() {
-      var order = orders.shift();
-      var assignedCourier = findBestCourierForOrder(order);
-      assignedCourier.orders.push(order);
-      var assignmentLogEntry = 'Заказ ' + order.id + ' (' + sectors[order.sector].name + ') ' + order.time + ' назначен Курьеру ' + assignedCourier.id;
-      document.getElementById('assignmentLog').innerHTML += '<br>' + assignmentLogEntry;
-      updateOrderLog();
-    }
-
-    function findBestCourierForOrder(order) {
-      // ... Реализация алгоритма назначения заказа курьеру на основе технического задания ...
-      return couriers[Math.floor(Math.random() * couriers.length)];
-    }
-
-    // ... Функции для работы с логами и временем ...
-
-    function updateCourierLog() {
-      var courierLog = 'Курьеры:<br>';
-      couriers.forEach(function(courier) {
-        courierLog += 'Курьер ' + courier.id + ' (Заказов: ' + courier.orders.length + ')
+  </script>
+</body>
+</html>
