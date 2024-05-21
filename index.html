@@ -1,54 +1,108 @@
-import yandex_api
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Автоназначение заказов на курьеров</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        #map {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <button onclick="addCourier()">Добавить курьера</button>
+    <button onclick="removeCourier()">Убрать курьера</button>
+    <button onclick="createOrder()">Создать заказ</button>
+    <button onclick="assignOrder()">Назначить заказ</button>
+    <div id="logs"></div>
 
-couriers = {}  # dictionary to store courier information
-orders = []  # list to store orders
+    <script>
+        let couriers = [];
+        let orders = [];
 
-def calculate_load(courier_id):
-    # calculate courier's load (number of orders in the next hour, excluding orders in the "Delivered" status)
-    load = 0
-    for order in orders:
-        if order['courier_id'] == courier_id and order['status'] != 'Delivered':
-            load += 1
-    return load
+        function initMap() {
+            ymaps.ready(init);
+            function init() {
+                let map = new ymaps.Map('map', {
+                    center: [49.2189, 44.5182],
+                    zoom: 12
+                });
 
-def calculate_priority(courier_id, order_sector):
-    # calculate courier's priority based on their load and direction (sector) of their assigned orders
-    priority = 0
-    if courier_id in couriers:
-        priority = couriers[courier_id]['load'] / (couriers[courier_id]['load'] + 1)
-        if order_sector in couriers[courier_id]['sectors']:
-            priority += 1
-    return priority
+                let restaurant = new ymaps.Placemark([49.2189, 44.5182], {
+                    hintContent: 'Ресторан',
+                    balloonContent: 'Ресторан по адресу Рабоче-Крестьянская ул., 9 Б, Волгоград'
+                });
 
-def assign_order(order):
-    # assign the order to the courier with the highest priority
-    max_priority = 0
-    assigned_courier = None
-    for courier_id in couriers:
-        priority = calculate_priority(courier_id, order['sector'])
-        if priority > max_priority:
-            max_priority = priority
-            assigned_courier = courier_id
-    if assigned_courier:
-        orders.append({'id': order['id'], 'courier_id': assigned_courier, 'status': 'New'})
-        couriers[assigned_courier]['load'] += 1
-        couriers[assigned_courier]['sectors'].add(order['sector'])
+                map.geoObjects.add(restaurant);
 
-def update_order_status(order_id, new_status):
-    # update the courier's load and priority when an order's status changes
-    for order in orders:
-        if order['id'] == order_id:
-            if new_status == 'Delivered':
-                couriers[order['courier_id']]['load'] -= 1
-            elif new_status == 'In Transit':
-                couriers[order['courier_id']]['load'] += 1
-            break
+                drawSectors(map);
+            }
 
-# example usage
-order = {'id': 1, 'address': 'Москва, ул. Ленина, 1', 'sector': 'А'}
-assign_order(order)
+            function drawSectors(map) {
+                let sectors = [
+                    { sector: 'Сектор А', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                    { sector: 'Сектор Б', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                    { sector: 'Сектор В', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
+                    { sector: 'Сектор Г', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] }
+                ];
 
-order = {'id': 2, 'address': 'Москва, ул. Ленина, 2', 'sector': 'Б'}
-assign_order(order)
+                sectors.forEach(sector => {
+                    let polygon = new ymaps.Polygon({
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: sector.coordinates
+                        },
+                        properties: {
+                            hintContent: sector.sector,
+                            balloonContent: sector.sector
+                        }
+                    });
 
-update_order_status(1, 'In Transit')
+                    map.geoObjects.add(polygon);
+                });
+            }
+        }
+
+        function addCourier() {
+            couriers.push({ id: couriers.length + 1, location: [49.2189, 44.5182], orders: [] });
+            updateLogs();
+        }
+
+        function removeCourier() {
+            if (couriers.length > 0) {
+                couriers.pop();
+                updateLogs();
+            }
+        }
+
+        function createOrder() {
+            orders.push({ id: orders.length + 1, pickup: [49.2189, 44.5182], delivery: [49.2189, 44.5182], time: new Date().toLocaleTimeString() });
+            updateLogs();
+        }
+
+        function assignOrder() {
+            // Здесь должен быть реализован алгоритм автоназначения заказов на курьеров
+        }
+
+        function updateLogs() {
+            let logs = document.getElementById('logs');
+            logs.innerHTML = '';
+
+            couriers.forEach(courier => {
+                let courierLog = document.createElement('div');
+                courierLog.textContent = `Курьер ${courier.id}: ${courier.orders.map(order => `${order.id}`).join(', ')}`;
+                logs.appendChild(courierLog);
+            });
+
+            orders.forEach(order => {
+                let orderLog = document.createElement('div');
+                orderLog.textContent = `${order.id} Заказ ${order.pickup} -> ${order.delivery} ${order.time}`;
+                logs.appendChild(orderLog);
+            });
+        }
+    </script>
+</body>
+</html>
