@@ -1,81 +1,157 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Доставка Волгоград</title>
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
-    <style>
-        #map {
-            height: 500px;
-            width: 70%;
-            float: left;
-        }
-        #log {
-            height: 500px;
-            width: 30%;
-            float: right;
-            overflow-y: scroll;
-            border-left: 1px solid #ccc;
-            padding-left: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div id="map"></div>
-    <div id="log">
-      <h3>Лог заказов</h3>
-    </div>
-    <button id="increaseCouriers">Увеличить количество курьеров (1)</button>
-    <button id="newOrder">Новый заказ</button>
-    <button id="assignOrder">Назначить заказ</button>
-
+    <title>Map Orders on Yandex Maps</title>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=YOUR_API_KEY"></script>
     <script>
         ymaps.ready(init);
-        var map, couriersCount = 1, orders = [], couriers = [{orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}, {orders: [], sector: null}];
 
         function init() {
-            map = new ymaps.Map("map", {
-                center: [48.707103, 44.516939],
+            var centerCoordinate = [48.705312, 44.518066]; // Координаты центра доставки в Волгограде
+            var map = new ymaps.Map('map', {
+                center: centerCoordinate,
                 zoom: 12
             });
 
-            drawSectors();
+            // Define the sectors
+            var sectorA = new ymaps.Polygon([
+                centerCoordinate,
+                [centerCoordinate[0], centerCoordinate[1] + 0.01],
+                [centerCoordinate[0] + 0.01, centerCoordinate[1]],
+                [centerCoordinate[0], centerCoordinate[1] - 0.01],
+                centerCoordinate
+            ], {
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FF0000',
+                fillOpacity: 0.35
+            }, {
+                balloonContent: 'Sector A'
+            });
+            sectorA.setMap(map);
 
-            document.getElementById('increaseCouriers').addEventListener('click', function() {
-                couriersCount = couriersCount >= 5 ? 5 : couriersCount + 1;
-                this.innerText = `Количество курьеров (${couriersCount})`;
+            var sectorB = new ymaps.Polygon([
+                centerCoordinate,
+                [centerCoordinate[0] - 0.01, centerCoordinate[1]],
+                [centerCoordinate[0] - 0.01, centerCoordinate[1] - 0.01],
+                [centerCoordinate[0], centerCoordinate[1] - 0.01],
+                centerCoordinate
+            ], {
+                strokeColor: '#00FF00',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#00FF00',
+                fillOpacity: 0.35
+            }, {
+                balloonContent: 'Sector B'
+            });
+            sectorB.setMap(map);
+
+            var sectorC = new ymaps.Polygon([
+                centerCoordinate,
+                [centerCoordinate[0], centerCoordinate[1] - 0.01],
+                [centerCoordinate[0] + 0.01, centerCoordinate[1] - 0.01],
+                [centerCoordinate[0] + 0.01, centerCoordinate[1]],
+                centerCoordinate
+            ], {
+                strokeColor: '#0000FF',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#0000FF',
+                fillOpacity: 0.35
+            }, {
+                balloonContent: 'Sector C'
+            });
+            sectorC.setMap(map);
+
+            var sectorD = new ymaps.Polygon([
+                centerCoordinate,
+                [centerCoordinate[0] + 0.01, centerCoordinate[1]],
+                [centerCoordinate[0] + 0.01, centerCoordinate[1] + 0.01],
+                [centerCoordinate[0], centerCoordinate[1] + 0.01],
+                centerCoordinate
+            ], {
+                strokeColor: '#FFFF00',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FFFF00',
+                fillOpacity: 0.35
+            }, {
+                balloonContent: 'Sector D'
+            });
+            sectorD.setMap(map);
+
+            // Define the map markers, orders, and couriers
+            var orders = [];
+            var couriers = [];
+            var numCouriers = 2; // Set the initial number of couriers
+
+            // Add markers for each sector
+            var sectorMarkers = [
+                new ymaps.Placemark(sectorA.geometry.getCoordinates()[3], { iconCaption: 'Sector A' }),
+                new ymaps.Placemark(sectorB.geometry.getCoordinates()[3], { iconCaption: 'Sector B' }),
+                new ymaps.Placemark(sectorC.geometry.getCoordinates()[3], { iconCaption: 'Sector C' }),
+                new ymaps.Placemark(sectorD.geometry.getCoordinates()[3], { iconCaption: 'Sector D' })
+            ];
+
+            sectorMarkers.forEach(function(marker) {
+                marker.events.add('click', function() {
+                    showOrderForm(marker.geometry.getCoordinates());
+                });
+                marker.setMap(map);
             });
 
-            document.getElementById('newOrder').addEventListener('click', addRandomOrder);
-            document.getElementById('assignOrder').addEventListener('click', assignOrder);
-        }
+            // Update the number of couriers when the button is clicked
+            document.getElementById('updateCouriersButton').addEventListener('click', function() {
+                numCouriers = parseInt(prompt('Введите количество курьеров: ', numCouriers));
+                if (numCouriers < 1) {
+                    numCouriers = 1;
+                } else if (numCouriers > 5) {
+                    numCouriers = 5;
+                }
+                document.getElementById('numCouriersDisplay').textContent = 'Количество курьеров: ' + numCouriers;
+            });
 
-        function drawSectors() {
-            // Сектора добавлены аналогично предыдущему примеру
-        }
+            // Generate a new random order when the button is clicked
+            document.getElementById('newOrderButton').addEventListener('click', generateRandomOrder);
 
-        function addRandomOrder() {
-            // Добавление заказа аналогично предыдущему примеру
-            // Добавляем запись в лог
-            var currentTime = new Date().toLocaleTimeString("ru-RU", {timeZone: "Europe/Moscow"});
-            var orderInfo = `Заказ: ${currentTime}, Сектор: ${order.sector + 1}`;
-            var logEntry = document.createElement("p");
-            logEntry.innerText = orderInfo;
-            document.getElementById("log").appendChild(logEntry);
-        }
+            // Function to generate a random order in one of the sectors
+            function generateRandomOrder() {
+                var randomSectorIndex = Math.floor(Math.random() * sectorMarkers.length);
+                var randomSector = sectorMarkers[randomSectorIndex];
+                var randomOrder = {
+                    lat: randomSector.geometry.getCoordinates()[1][0],
+                    lng: randomSector.geometry.getCoordinates()[1][1],
+                    number: orders.length + 1,
+                    description: 'Новый заказ №' + (orders.length + 1),
+                    sector: randomSector.properties.get('iconCaption'),
+                    time: new Date().toLocaleTimeString()
+                };
+                orders.push(randomOrder);
+                addOrderMarker(randomOrder);
+            }
 
-        function assignOrder() {
-            // Реализация логики назначения заказа курьерам в соответствии с ТЗ
-            // Эта функция должна учитывать нагрузку и сектора курьеров, выбирая оптимального курьера для заказа
+            // Function to add an order marker to the map
+            function addOrderMarker(order) {
+                var orderMarker = new ymaps.Placemark([order.lat, order.lng], {
+                    iconCaption: 'Order #' + order.number,
+                    balloonContent: order.description
+                });
+                orderMarker.events.add('click', function() {
+                    showOrderForm([order.lat, order.lng]);
+                });
+                orderMarker.setMap(map);
+            }
 
-            // Добавляем результат назначения в лог
-            var assignInfo = `Заказ назначен курьеру: ${chosenCourier}`;
-            var logEntry = document.createElement("p");
-            logEntry.innerText = assignInfo;
-            document.getElementById("log").appendChild(logEntry);
-        }
+            // Function to show the order form when a marker is clicked
+            function showOrderForm(coordinates) {
+                var orderForm = document.getElementById('orderForm');
+                orderForm.style.display = 'block';
+                orderForm.style.left = (map.container.offsetLeft + map.container.offsetWidth / 2 - orderForm.offsetWidth / 2) + 'px';
+                orderForm.style.top = (map.container.offsetTop + map.container.offsetHeight / 2 - orderForm.offsetHeight / 2) + 'px';
+                orderForm.querySelector('input[name="orderLat"]').value = coordinates[0];
+                orderForm.querySelector('input[name="orderLng"]').value = coordinates[1];
+            }
 
-        // Дополнительные функции необходимо реализовать в соответствии с предыдущими инструкциями
-    </script>
-</body>
-</html>
+            // Function to assign an order to a courier
