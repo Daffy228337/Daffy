@@ -1,56 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Последовательные заказы</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
+    <meta charset="UTF-8">
+    <title>Доставка Волгоград</title>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
     <style>
         #map {
-            height: 400px;
+            height: 500px;
             width: 100%;
-        }
-        #orderInfo {
-            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <button id="nextOrder">Следующий заказ</button>
-    <div id="orderInfo"></div>
-
+    <button id="increaseCouriers">Увеличить количество курьеров (1)</button>
+    <button id="newOrder">Новый заказ</button>
+    <button id="assignOrder">Назначить заказ</button>
     <script>
-        ymaps.ready(function () {
-            var map = new ymaps.Map("map", {
-                center: [55.76, 37.64],
-                zoom: 10
+        ymaps.ready(init);
+        var map, couriersCount = 1, orders = [], couriers = [{orders: []}, {orders: []}, {orders: []}, {orders: []}, {orders: []}];
+        const CENTER = [48.707103, 44.516939]; // Центр Волгограда
+
+        function init() {
+            map = new ymaps.Map("map", {
+                center: CENTER,
+                zoom: 13
             });
 
-            var orders = [
-                {id: 1, coords: [55.76, 37.64], description: "Заказ 1: Доставка цветов"},
-                {id: 2, coords: [55.76, 37.60], description: "Заказ 2: Доставка документов"},
-                // Продолжите добавлять заказы здесь
-                {id: 15, coords: [55.70, 37.60], description: "Заказ 15: Доставка еды"}
+            drawSectors();
+
+            document.getElementById('increaseCouriers').addEventListener('click', function() {
+                couriersCount = couriersCount >= 5 ? 5 : couriersCount + 1;
+                this.innerText = `Количество курьеров (${couriersCount})`;
+            });
+
+            document.getElementById('newOrder').addEventListener('click', addRandomOrder);
+            document.getElementById('assignOrder').addEventListener('click', assignOrder);
+        }
+
+        // Функция для рисования секторов
+        function drawSectors() {
+            var sectorColors = ['#FF6347', '#4682B4', '#32CD32', '#FFD700'];
+            var sectors = [
+                { startAngle: -45, endAngle: 45 }, // Сектор А: Северо-восток
+                { startAngle: 45, endAngle: 135 }, // Сектор Б: Северо-запад
+                { startAngle: 135, endAngle: 225 }, // Сектор В: Юго-запад
+                { startAngle: -135, endAngle: -45 } // Сектор Г: Юго-восток
             ];
 
-            var currentIndex = 0;
+            sectors.forEach(function(sector, index) {
+                var polygon = new ymaps.Polygon([
+                    createSectorPoints(CENTER, sector.startAngle, sector.endAngle, 0.1)
+                ], {}, {
+                    fillColor: sectorColors[index],
+                    strokeColor: sectorColors[index],
+                    opacity: 0.5
+                });
+                map.geoObjects.add(polygon);
+            });
+        }
 
-            document.getElementById("nextOrder").onclick = function() {
-                if (currentIndex < orders.length) {
-                    var order = orders[currentIndex];
-                    var placemark = new ymaps.Placemark(order.coords, {
-                        balloonContent: order.description
-                    });
-                    map.geoObjects.add(placemark);
-                    map.setCenter(order.coords, 12);
+        // Функция для создания точек многоугольника сектора
+        function createSectorPoints(center, startAngle, endAngle, radius) {
+            var points = [center];
+            for (var angle = startAngle; angle <= endAngle; angle++) {
+                var radians = (angle * Math.PI) / 180;
+                var point = [
+                    center[0] + radius * Math.cos(radians),
+                    center[1] + radius * Math.sin(radians)
+                ];
+                points.push(point);
+            }
+            points.push(center);
+            return points;
+        }
 
-                    document.getElementById("orderInfo").innerHTML = order.description;
+        // Функция для добавления случайного заказа
+        function addRandomOrder() {
+            // Пример добавления заказа без учета секторов
+            var randomPoint = [
+                CENTER[0] + (0.01 - Math.random() / 50),
+                CENTER[1] + (0.01 - Math.random() / 50)
+            ];
+            var placemark = new ymaps.Placemark(randomPoint, {}, {
+                preset: 'islands#icon',
+                iconColor: '#0095b6'
+            });
+            map.geoObjects.add(placemark);
+            orders.push({placemark, sector: Math.floor(Math.random() * 4)}); // Случайный сектор
+        }
 
-                    currentIndex++;
-                } else {
-                    alert("Это был последний заказ!");
-                }
-            };
-        });
+        // Функция для назначения заказа
+        function assignOrder() {
+            if (orders.length === 0) {
+                alert("Нет доступных заказов для назначения.");
+                return;
+            }
+
+            // Упрощенная логика назначения заказов
+            var unassignedOrders = orders.filter(order => !order.assigned);
+            if (unassignedOrders.length > 0) {
+                var order = unassignedOrders[0]; // Берем первый неназначенный заказ
+                order.assigned = true; // Помечаем заказ как назначенный
+                alert(`Заказ назначен. Сектор: ${order.sector + 1}`);
+            } else {
+                alert("Все заказы уже назначены.");
+            }
+        }
+
+        // Вспомогательная функция для получения случайного целого числа
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
     </script>
 </body>
 </html>
