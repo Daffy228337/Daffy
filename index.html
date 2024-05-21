@@ -51,11 +51,25 @@
         var south = [48.70, 44.800322];   // Юг
         var west =  [48.772430, 44.74];   // Запад
 
-        // Создание секторов с дополнительными точками для более прямых линий
+        // Дополнительные точки для формирования четких секторов
         var northEast = [48.84, 44.86];   // Северо-восток
         var southEast = [48.70, 44.86];   // Юго-восток
         var southWest = [48.70, 44.74];   // Юго-запад
         var northWest = [48.84, 44.74];   // Северо-запад
 
         // Создание секторов
-        createSector([[centerPoint, north, northEast, east]], 'rgba(255, 0, 0, 0
+        createSector([
+            [centerPoint, north, northEast, east], // Сектор A
+            [centerPoint, east, southEast, south], // Сектор B
+            [centerPoint, south, southWest, west], // Сектор C
+            [centerPoint, west, northWest, north]  // Сектор D
+        ], [
+            'rgba(255, 0, 0, 0.5)', // Красный
+            'rgba(0, 255, 0, 0.5)',  // Зеленый
+            'rgba(0, 0, 255, 0.5)',  // Синий
+            'rgba(255, 255, 0, 0.5)' // Желтый
+        ]);
+    }
+</script>
+</body>
+</html>
