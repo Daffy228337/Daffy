@@ -1,98 +1,217 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Simulation</title>
+    <title>Симуляция доставки</title>
+    <meta charset="utf-8" />
     <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-    <div id="map" style="width: 100%; height: 400px;"></div>
-    <button id="addCourierBtn">Добавить курьера</button>
-    <button id="removeCourierBtn">Убрать курьера</button>
-    <button id="createOrderBtn">Создать заказ</button>
-    <button id="assignOrderBtn">Назначить заказ</button>
-    <div id="orderLog"></div>
-    <div id="courierOrdersLog"></div>
-
+    <div id="map"></div>
+    <div id="controls">
+        <button onclick="addCourier()">Добавить курьера</button>
+        <button onclick="removeCourier()">Убрать курьера</button>
+        <br><br>
+        <button onclick="createOrder()">Создать заказ</button>
+        <button onclick="assignOrder()">Назначить заказ</button>
+        <br><br>
+        <div>Список курьеров:</div>
+        <ul id="courierList"></ul>
+        <br>
+        <div>Лог заказов:</div>
+        <ul id="orderList"></ul>
+        <br>
+        <div>Лог назначений:</div>
+        <ul id="assignmentLog"></ul>
+    </div>
     <script>
         ymaps.ready(init);
 
-        let map;
-        let sectors = [];
-        let orders = [];
+        let myMap;
+        let restaurantCoords = [48.708406, 44.514243]; // Координаты ресторана
         let couriers = [];
+        let orders = [];
+        let nextOrderId = 1;
+        let nextCourierId = 1;
+        let sectorBoundaries; 
 
         function init() {
-            map = new ymaps.Map("map", {
-                center: [48.7093, 44.5174],
-                zoom: 12
+            myMap = new ymaps.Map("map", {
+                center: restaurantCoords,
+                zoom: 14 // Уменьшил зум для лучшей видимости секторов
             });
 
-            createSectors();
+            // Добавляем метку ресторана
+            let restaurantMarker = new ymaps.Placemark(restaurantCoords, {
+                balloonContent: "Ресторан"
+            });
+            myMap.geoObjects.add(restaurantMarker);
 
-            document.getElementById("addCourierBtn").addEventListener("click", addCourier);
-            document.getElementById("removeCourierBtn").addEventListener("click", removeCourier);
-            document.getElementById("createOrderBtn").addEventListener("click", createOrder);
-            document.getElementById("assignOrderBtn").addEventListener("click", assignOrder);
+            // Определяем границы секторов (примерные, скорректируйте при необходимости)
+            sectorBoundaries = [
+                { sector: "A", color: "#FF0000", coords: [[48.728406, 44.534243], [48.688406, 44.494243], restaurantCoords] }, // СВ
+                { sector: "B", color: "#00FF00", coords: [[48.688406, 44.494243], [48.688406, 44.534243], restaurantCoords] }, // СЗ
+                { sector: "C", color: "#0000FF", coords: [[48.688406, 44.534243], [48.728406, 44.574243], restaurantCoords] }, // ЮЗ
+                { sector: "D", color: "#FFFF00", coords: [[48.728406, 44.574243], [48.728406, 44.534243], restaurantCoords] }  // ЮВ
+            ];
+
+            // Рисуем сектора
+            drawSectors();
         }
 
-        function createSectors() {
-            let restaurantCoords = [48.7093, 44.5174];
-            let radius = 2000; // Радиус секторов
-
-            let colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00']; // Цвета для секторов
-
-            for (let i = 0; i < 4; i++) {
-                let startAngle = i * Math.PI / 2;
-                let endAngle = (i + 1) * Math.PI / 2;
-
-                let sectorGeometry = new ymaps.geometry.Polygon.fromEncodedCoordinates([
-                    ymaps.util.polygon.getCoordinates(restaurantCoords, radius, startAngle, endAngle)
-                ]);
-
-                let sector = new ymaps.Polygon([sectorGeometry], {}, {
-                    fillColor: colors[i],
-                    strokeColor: colors[i],
-                    opacity: 0.5
+        function drawSectors() {
+            sectorBoundaries.forEach(sector => {
+                let polygon = new ymaps.Polygon([sector.coords], {}, {
+                    fillColor: sector.color,
+                    opacity: 0.3,
+                    strokeWidth: 0
                 });
-
-                sectors.push(sector);
-                map.geoObjects.add(sector);
-            }
+                myMap.geoObjects.add(polygon);
+            });
         }
 
         function addCourier() {
-            let courierNumber = couriers.length + 1;
-            couriers.push({ number: courierNumber, orders: [] });
-            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${courierNumber}\n`;
+            couriers.push({
+                id: nextCourierId++,
+                orders: []
+            });
+            console.log(`Курьер номер ${nextCourierId - 1} добавлен`);
+            updateCourierList();
         }
 
         function removeCourier() {
             if (couriers.length > 0) {
-                let removedCourier = couriers.pop();
-                document.getElementById("courierOrdersLog").innerText += `Курьер номер ${removedCourier.number} удален\n`;
+                couriers.pop();
+                console.log(`Курьер номер ${nextCourierId - 1} удален`);
+                updateCourierList();
             }
         }
 
         function createOrder() {
-            let sectorIndex = Math.floor(Math.random() * 4);
-            let sectorLetter = String.fromCharCode(65 + sectorIndex); // A, B, C, D
-            let time = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow' });
-            orders.push({ sector: sectorLetter, time: time });
-            document.getElementById("orderLog").innerText += `Заказ Сектор ${sectorLetter}. ${time}\n`;
+            let orderCoords = generateRandomCoords();
+            let sector = getSector(orderCoords);
+            let order = {
+                id: nextOrderId++,
+                coords: orderCoords,
+                sector: sector,
+                time: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
+            };
+            orders.push(order);
+
+            let orderMarker = new ymaps.Placemark(orderCoords, {
+                balloonContent: `Заказ ${order.id}`
+            }, {
+                preset: 'islands#redCircleIcon'
+            });
+            myMap.geoObjects.add(orderMarker);
+
+            console.log(`Создан заказ ${order.id} в секторе ${sector} в ${order.time}`);
+            updateOrderList();
         }
 
         function assignOrder() {
-            let newOrder = orders.pop();
-            let assignedCourier = assignCourier(newOrder);
-            assignedCourier.orders.push(newOrder.sector);
-            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${assignedCourier.number}. Заказ ${newOrder.sector}\n`;
+            if (orders.length === 0) return;
+
+            let assignedOrder = orders.shift();
+            let assignedCourier = chooseCourier(assignedOrder); // Функция выбора курьера
+
+            if (assignedCourier) {
+                assignedCourier.orders.push(assignedOrder);
+                console.log(`Заказ ${assignedOrder.id} назначен курьеру ${assignedCourier.id}`);
+            } else {
+                // Обработка случая, когда нет доступных курьеров
+                console.log("Нет доступных курьеров для заказа", assignedOrder.id);
+            }
+
+            updateOrderList();
+            updateCourierList();
+            updateAssignmentLog();
         }
 
-        function assignCourier(order) {
-            // Логика назначения заказа на курьера
-            return couriers[0]; // Пример: всегда назначаем первого курьера
+        function chooseCourier(order) {
+          // TODO: Реализовать логику выбора курьера по алгоритму из ТЗ
+          return couriers[0]; // Временная заглушка - возвращает первого курьера
+        }
+
+        function generateRandomCoords() {
+            let lat = restaurantCoords[0] + (Math.random() - 0.5) * 0.05; // +/- 0.05 градуса от ресторана
+            let lng = restaurantCoords[1] + (Math.random() - 0.5) * 0.05;
+            return [lat, lng];
+        }
+
+        function getSector(coords) {
+            for (let i = 0; i < sectorBoundaries.length; i++) {
+                let sector = sectorBoundaries[i];
+                if (isPointInTriangle(coords, sector.coords[0], sector.coords[1], sector.coords[2])) {
+                    return sector.sector;
+                }
+            }
+            return null; // Точка не принадлежит ни одному сектору
+        }
+
+        // Функция проверки принадлежности точки треугольнику
+        // (https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle)
+        function isPointInTriangle(p, p0, p1, p2) {
+            let a = (p1[0] - p0[0]) * (p[1] - p0[1]) - (p1[1] - p0[1]) * (p[0] - p0[0]);
+            let b = (p2[0] - p1[0]) * (p[1] - p1[1]) - (p2[1] - p1[1]) * (p[0] - p1[0]);
+            let c = (p0[0] - p2[0]) * (p[1] - p2[1]) - (p0[1] - p2[1]) * (p[0] - p2[0]);
+            return (a >= 0 && b >= 0 && c >= 0) || (a <= 0 && b <= 0 && c <= 0);
+        }
+
+        function updateCourierList() {
+            let courierList = document.getElementById("courierList");
+            courierList.innerHTML = "";
+            couriers.forEach((courier, index) => {
+                let li = document.createElement("li");
+                li.textContent = `Курьер ${courier.id}`;
+                courierList.appendChild(li);
+            });
+        }
+
+        function updateOrderList() {
+            let orderList = document.getElementById("orderList");
+            orderList.innerHTML = "";
+            orders.forEach(order => {
+                let li = document.createElement("li");
+                li.textContent = `${order.id}Заказ Сектор ${order.sector}. ${order.time}`;
+                orderList.appendChild(li);
+            });
+        }
+
+        function updateAssignmentLog() {
+            let assignmentLog = document.getElementById("assignmentLog");
+            assignmentLog.innerHTML = "";
+            couriers.forEach(courier => {
+                let ordersInSectors = {};
+                courier.orders.forEach(order => {
+                    if (!ordersInSectors[order.sector]) {
+                        ordersInSectors[order.sector] = [];
+                    }
+                    ordersInSectors[order.sector].push(order.id);
+                });
+
+                let li = document.createElement("li");
+                li.textContent = `Курьер ${courier.id}: `;
+                for (let sector in ordersInSectors) {
+                    li.textContent += `Заказы (${sector}: ${ordersInSectors[sector].join(',')}) `;
+                }
+                assignmentLog.appendChild(li);
+            });
         }
     </script>
 </body>
