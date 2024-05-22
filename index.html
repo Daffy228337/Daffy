@@ -1,127 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Автоназначение заказов на курьеров</title>
+    <title>Симуляция доставки</title>
+    <meta charset="utf-8" />
     <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
     <style>
-        #map {
+        html, body, #map {
             width: 100%;
-            height: 500px;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <button onclick="addCourier()">Добавить курьера</button>
-    <button onclick="removeCourier()">Убрать курьера</button>
-    <button onclick="createOrder()">Создать заказ</button>
-    <button onclick="assignOrder()">Назначить заказ</button>
-    <div id="logs"></div>
-
+    <div id="controls">
+        <button onclick="addCourier()">Добавить курьера</button>
+        <button onclick="removeCourier()">Убрать курьера</button>
+        <br><br>
+        <button onclick="createOrder()">Создать заказ</button>
+        <button onclick="assignOrder()">Назначить заказ</button>
+        <br><br>
+        <div>Список курьеров:</div>
+        <ul id="courierList"></ul>
+        <br>
+        <div>Лог заказов:</div>
+        <ul id="orderList"></ul>
+        <br>
+        <div>Лог назначений:</div>
+        <ul id="assignmentLog"></ul>
+    </div>
     <script>
+        ymaps.ready(init);
+
+        let myMap;
+        let restaurantCoords = [48.708406, 44.514243]; // Координаты ресторана
         let couriers = [];
         let orders = [];
+        let nextOrderId = 1;
+        let nextCourierId = 1;
 
-        function initMap() {
-            ymaps.ready(init);
-            function init() {
-                let map = new ymaps.Map('map', {
-                    center: [49.2189, 44.5182],
-                    zoom: 12
-                });
+        function init() {
+            myMap = new ymaps.Map("map", {
+                center: restaurantCoords,
+                zoom: 15
+            });
+            
+            // Добавляем метку ресторана
+            let restaurantMarker = new ymaps.Placemark(restaurantCoords, {
+                balloonContent: "Ресторан"
+            });
+            myMap.geoObjects.add(restaurantMarker);
 
-                let restaurant = new ymaps.Placemark([49.2189, 44.5182], {
-                    hintContent: 'Ресторан',
-                    balloonContent: 'Ресторан по адресу Рабоче-Крестьянская ул., 9 Б, Волгоград'
-                });
-
-                map.geoObjects.add(restaurant);
-
-                drawSectors(map);
-            }
+            // Рисуем сектора
+            drawSectors();
         }
 
-        function drawSectors(map) {
-            let sectors = [
-                { sector: 'Сектор А', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                { sector: 'Сектор Б', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                { sector: 'Сектор В', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] },
-                { sector: 'Сектор Г', coordinates: [[49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182], [49.2189, 44.5182]] }
-            ];
-
-            sectors.forEach(sector => {
-                let polygon = new ymaps.Polygon({
-                    geometry: {
-                        type: 'Polygon',
-                        coordinates: sector.coordinates
-                    },
-                    properties: {
-                        hintContent: sector.sector,
-                        balloonContent: sector.sector
-                    }
-                });
-
-                map.geoObjects.add(polygon);
-            });
+        function drawSectors() {
+            // Логика для рисования секторов на карте
+            // ...
         }
 
         function addCourier() {
-            couriers.push({ id: couriers.length + 1, location: [49.2189, 44.5182], orders: [] });
-            updateLogs();
+            couriers.push({
+                id: nextCourierId++,
+                orders: []
+            });
+            updateCourierList();
         }
 
         function removeCourier() {
             if (couriers.length > 0) {
                 couriers.pop();
-                updateLogs();
+                updateCourierList();
             }
         }
 
         function createOrder() {
-            orders.push({ id: orders.length + 1, pickup: [49.2189, 44.5182], delivery: [49.2189, 44.5182], time: new Date().toLocaleTimeString() });
-            updateLogs();
+            // Генерируем случайные координаты внутри области доставки
+            let orderCoords = generateRandomCoords();
+            let sector = getSector(orderCoords);
+            let order = {
+                id: nextOrderId++,
+                coords: orderCoords,
+                sector: sector,
+                time: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) // Московское время
+            };
+            orders.push(order);
+
+            // Добавляем метку заказа на карту
+            let orderMarker = new ymaps.Placemark(orderCoords, {
+                balloonContent: `Заказ ${order.id}`
+            }, {
+                preset: 'islands#redCircleIcon'
+            });
+            myMap.geoObjects.add(orderMarker);
+
+            updateOrderList();
         }
 
         function assignOrder() {
-            let assignments = {};
-            for (let order of orders) {
-                let minTime = Infinity;
-                let assignedCourier = null;
-                for (let courier of couriers) {
-                    let deliveryTime = getDistance(order.pickup, courier.location) + getDistance(courier.location, order.delivery);
-                    if (deliveryTime < minTime) {
-                        minTime = deliveryTime;
-                        assignedCourier = courier.id;
-                    }
-                }
-                assignments[order.id] = assignedCourier;
-            }
-            return assignments;
+            // Реализация логики назначения заказа
+            // ...
+            updateAssignmentLog();
         }
 
-        function getDistance(coord1, coord2) {
-            const url = `https://geocode-maps.yandex.ru/1.x/?geocode=${coord1}&geocode=${coord2}&format=json&apikey=${API_KEY}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            const points = data.response.geoObjectCollection.featureMember;
-            const distance = points[1].geoObject.point.pos.split(' ');
-            return parseFloat(distance[0]);
+        // Вспомогательные функции
+        function generateRandomCoords() {
+            // Логика для генерации случайных координат
+            // ...
         }
 
-        function updateLogs() {
-            let logs = document.getElementById('logs');
-            logs.innerHTML = '';
-            for (let courier of couriers) {
-                let courierLog = document.createElement('div');
-                courierLog.textContent = `Курьер ${courier.id}: ${courier.orders.map(order => `${order.id}`).join(', ')}`;
-                logs.appendChild(courierLog);
-            }
-            for (let order of orders) {
-                let orderLog = document.createElement('div');
-                orderLog.textContent = `${order.id} Заказ ${order.pickup} -> ${order.delivery} ${order.time}`;
-                logs.appendChild(orderLog);
-            }
+        function getSector(coords) {
+            // Логика определения сектора по координатам
+            // ...
+        }
+
+        function updateCourierList() {
+            // Обновление списка курьеров в HTML
+            // ...
+        }
+
+        function updateOrderList() {
+            // Обновление списка заказов в HTML
+            // ...
+        }
+
+        function updateAssignmentLog() {
+            // Обновление лога назначений в HTML
+            // ...
         }
     </script>
 </body>
