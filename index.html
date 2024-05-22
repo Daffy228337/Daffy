@@ -1,182 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Симуляция доставки</title>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Simulation</title>
     <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
-    <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
-        }
-        #controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-        }
-    </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="controls">
-        <button onclick="addCourier()">Добавить курьера</button>
-        <button onclick="removeCourier()">Убрать курьера</button>
-        <br><br>
-        <button onclick="createOrder()">Создать заказ</button>
-        <button onclick="assignOrder()">Назначить заказ</button>
-        <br><br>
-        <div>Список курьеров:</div>
-        <ul id="courierList"></ul>
-        <br>
-        <div>Лог заказов:</div>
-        <ul id="orderList"></ul>
-        <br>
-        <div>Лог назначений:</div>
-        <ul id="assignmentLog"></ul>
-    </div>
+    <div id="map" style="width: 100%; height: 400px;"></div>
+    <button id="addCourierBtn">Добавить курьера</button>
+    <button id="removeCourierBtn">Убрать курьера</button>
+    <button id="createOrderBtn">Создать заказ</button>
+    <button id="assignOrderBtn">Назначить заказ</button>
+    <div id="orderLog"></div>
+    <div id="courierOrdersLog"></div>
+
     <script>
         ymaps.ready(init);
 
-        let myMap;
-        let restaurantCoords = [48.708406, 44.514243]; // Координаты ресторана
-        let couriers = [];
+        let map;
         let orders = [];
-        let nextOrderId = 1;
-        let nextCourierId = 1;
+        let couriers = [];
 
         function init() {
-            myMap = new ymaps.Map("map", {
-                center: restaurantCoords,
-                zoom: 15
+            map = new ymaps.Map("map", {
+                center: [48.7093, 44.5174],
+                zoom: 12
             });
 
-            // Добавляем метку ресторана
-            let restaurantMarker = new ymaps.Placemark(restaurantCoords, {
-                balloonContent: "Ресторан"
-            });
-            myMap.geoObjects.add(restaurantMarker);
-
-            // Рисуем сектора (пример)
-            drawSectors();
-        }
-
-        function drawSectors() {
-            let sectorBoundaries = [
-                { color: "#FF0000", coords: [[48.718406, 44.504243], [48.718406, 44.524243], [48.708406, 44.524243]] }, // Пример границы сектора A
-                // Добавьте границы для остальных секторов
-            ];
-
-            sectorBoundaries.forEach(sector => {
-                let polygon = new ymaps.Polygon([sector.coords], {}, {
-                    fillColor: sector.color,
-                    opacity: 0.3,
-                    strokeWidth: 0
-                });
-                myMap.geoObjects.add(polygon);
-            });
+            document.getElementById("addCourierBtn").addEventListener("click", addCourier);
+            document.getElementById("removeCourierBtn").addEventListener("click", removeCourier);
+            document.getElementById("createOrderBtn").addEventListener("click", createOrder);
+            document.getElementById("assignOrderBtn").addEventListener("click", assignOrder);
         }
 
         function addCourier() {
-            couriers.push({
-                id: nextCourierId++,
-                orders: []
-            });
-            updateCourierList();
+            let courierNumber = couriers.length + 1;
+            couriers.push({ number: courierNumber, orders: [] });
+            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${courierNumber}\n`;
         }
 
         function removeCourier() {
             if (couriers.length > 0) {
-                couriers.pop();
-                updateCourierList();
+                let removedCourier = couriers.pop();
+                document.getElementById("courierOrdersLog").innerText += `Курьер номер ${removedCourier.number} удален\n`;
             }
         }
 
         function createOrder() {
-            let orderCoords = generateRandomCoords();
-            let sector = getSector(orderCoords); // Пока не реализовано
-            let order = {
-                id: nextOrderId++,
-                coords: orderCoords,
-                sector: sector,
-                time: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
-            };
-            orders.push(order);
-
-            let orderMarker = new ymaps.Placemark(orderCoords, {
-                balloonContent: `Заказ ${order.id}`
-            }, {
-                preset: 'islands#redCircleIcon'
-            });
-            myMap.geoObjects.add(orderMarker);
-
-            updateOrderList();
+            let sector = Math.floor(Math.random() * 4) + 1;
+            let time = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow' });
+            orders.push({ sector: sector, time: time });
+            document.getElementById("orderLog").innerText += `Заказ Сектор ${sector}. ${time}\n`;
         }
 
         function assignOrder() {
-            if (orders.length === 0) return; 
-
-            let assignedCourier = couriers[Math.floor(Math.random() * couriers.length)]; // Пример: случайное назначение
-            let assignedOrder = orders.shift();
-
-            if (assignedCourier) {
-                assignedCourier.orders.push(assignedOrder);
-                updateAssignmentLog();
-            } else {
-                // Обработка случая, когда нет доступных курьеров
-                console.log("Нет доступных курьеров для заказа", assignedOrder.id);
-            }
-
-            updateOrderList();
-            updateCourierList();
+            let newOrder = orders.pop();
+            let assignedCourier = assignCourier(newOrder);
+            assignedCourier.orders.push(newOrder.sector);
+            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${assignedCourier.number}. Заказ ${newOrder.sector}\n`;
         }
 
-        function generateRandomCoords() {
-            let center = myMap.getCenter();
-            let latitude = center[0] + (Math.random() - 0.5) * 0.1; // +/- 0.1 градуса от центра
-            let longitude = center[1] + (Math.random() - 0.5) * 0.1;
-            return [latitude, longitude];
-        }
-
-        function getSector(coords) {
-            // TODO: Реализуйте логику определения сектора по координатам
-            return "A"; // Заглушка, пока не реализована логика
-        }
-
-        function updateCourierList() {
-            let courierList = document.getElementById("courierList");
-            courierList.innerHTML = "";
-            couriers.forEach(courier => {
-                let li = document.createElement("li");
-                li.textContent = `Курьер ${courier.id}: ${courier.orders.length} заказов`;
-                courierList.appendChild(li);
-            });
-        }
-
-        function updateOrderList() {
-            let orderList = document.getElementById("orderList");
-            orderList.innerHTML = "";
-            orders.forEach(order => {
-                let li = document.createElement("li");
-                li.textContent = `${order.id}Заказ Сектор ${order.sector}. ${order.time}`;
-                orderList.appendChild(li);
-            });
-        }
-
-        function updateAssignmentLog() {
-            let assignmentLog = document.getElementById("assignmentLog");
-            assignmentLog.innerHTML = "";
-            couriers.forEach(courier => {
-                courier.orders.forEach(order => {
-                    let li = document.createElement("li");
-                    li.textContent = `Курьер ${courier.id} - Заказ ${order.id}`;
-                    assignmentLog.appendChild(li);
-                });
-            });
+        function assignCourier(order) {
+            // Логика назначения заказа на курьера в соответствии с вашим техническим заданием
+            // В этой функции вы можете реализовать алгоритм назначения курьера на заказ
+            // и вернуть объект курьера, на которого был назначен заказ
+            return couriers[0]; // Пример: всегда назначаем первого курьера
         }
     </script>
 </body>
