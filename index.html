@@ -54,20 +54,31 @@
                 center: restaurantCoords,
                 zoom: 15
             });
-            
+
             // Добавляем метку ресторана
             let restaurantMarker = new ymaps.Placemark(restaurantCoords, {
                 balloonContent: "Ресторан"
             });
             myMap.geoObjects.add(restaurantMarker);
 
-            // Рисуем сектора
+            // Рисуем сектора (пример)
             drawSectors();
         }
 
         function drawSectors() {
-            // Логика для рисования секторов на карте
-            // ...
+            let sectorBoundaries = [
+                { color: "#FF0000", coords: [[48.718406, 44.504243], [48.718406, 44.524243], [48.708406, 44.524243]] }, // Пример границы сектора A
+                // Добавьте границы для остальных секторов
+            ];
+
+            sectorBoundaries.forEach(sector => {
+                let polygon = new ymaps.Polygon([sector.coords], {}, {
+                    fillColor: sector.color,
+                    opacity: 0.3,
+                    strokeWidth: 0
+                });
+                myMap.geoObjects.add(polygon);
+            });
         }
 
         function addCourier() {
@@ -86,18 +97,16 @@
         }
 
         function createOrder() {
-            // Генерируем случайные координаты внутри области доставки
             let orderCoords = generateRandomCoords();
-            let sector = getSector(orderCoords);
+            let sector = getSector(orderCoords); // Пока не реализовано
             let order = {
                 id: nextOrderId++,
                 coords: orderCoords,
                 sector: sector,
-                time: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) // Московское время
+                time: new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })
             };
             orders.push(order);
 
-            // Добавляем метку заказа на карту
             let orderMarker = new ymaps.Placemark(orderCoords, {
                 balloonContent: `Заказ ${order.id}`
             }, {
@@ -109,35 +118,65 @@
         }
 
         function assignOrder() {
-            // Реализация логики назначения заказа
-            // ...
-            updateAssignmentLog();
+            if (orders.length === 0) return; 
+
+            let assignedCourier = couriers[Math.floor(Math.random() * couriers.length)]; // Пример: случайное назначение
+            let assignedOrder = orders.shift();
+
+            if (assignedCourier) {
+                assignedCourier.orders.push(assignedOrder);
+                updateAssignmentLog();
+            } else {
+                // Обработка случая, когда нет доступных курьеров
+                console.log("Нет доступных курьеров для заказа", assignedOrder.id);
+            }
+
+            updateOrderList();
+            updateCourierList();
         }
 
-        // Вспомогательные функции
         function generateRandomCoords() {
-            // Логика для генерации случайных координат
-            // ...
+            let center = myMap.getCenter();
+            let latitude = center[0] + (Math.random() - 0.5) * 0.1; // +/- 0.1 градуса от центра
+            let longitude = center[1] + (Math.random() - 0.5) * 0.1;
+            return [latitude, longitude];
         }
 
         function getSector(coords) {
-            // Логика определения сектора по координатам
-            // ...
+            // TODO: Реализуйте логику определения сектора по координатам
+            return "A"; // Заглушка, пока не реализована логика
         }
 
         function updateCourierList() {
-            // Обновление списка курьеров в HTML
-            // ...
+            let courierList = document.getElementById("courierList");
+            courierList.innerHTML = "";
+            couriers.forEach(courier => {
+                let li = document.createElement("li");
+                li.textContent = `Курьер ${courier.id}: ${courier.orders.length} заказов`;
+                courierList.appendChild(li);
+            });
         }
 
         function updateOrderList() {
-            // Обновление списка заказов в HTML
-            // ...
+            let orderList = document.getElementById("orderList");
+            orderList.innerHTML = "";
+            orders.forEach(order => {
+                let li = document.createElement("li");
+                li.textContent = `${order.id}Заказ Сектор ${order.sector}. ${order.time}`;
+                orderList.appendChild(li);
+            });
         }
 
         function updateAssignmentLog() {
-            // Обновление лога назначений в HTML
-            // ...
+            let assignmentLog = document.getElementById("assignmentLog");
+            assignmentLog.innerHTML = "";
+            couriers.forEach(courier => {
+                courier.orders.forEach(order => {
+                    let li = document.createElement("li");
+                    li.textContent = `Курьер ${courier.id} - Заказ ${order.id}`;
+                    assignmentLog.appendChild(li);
+                });
+            });
         }
     </script>
 </body>
