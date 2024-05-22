@@ -19,6 +19,7 @@
         ymaps.ready(init);
 
         let map;
+        let sectors = [];
         let orders = [];
         let couriers = [];
 
@@ -28,10 +29,37 @@
                 zoom: 12
             });
 
+            createSectors();
+
             document.getElementById("addCourierBtn").addEventListener("click", addCourier);
             document.getElementById("removeCourierBtn").addEventListener("click", removeCourier);
             document.getElementById("createOrderBtn").addEventListener("click", createOrder);
             document.getElementById("assignOrderBtn").addEventListener("click", assignOrder);
+        }
+
+        function createSectors() {
+            let restaurantCoords = [48.7093, 44.5174];
+            let radius = 2000; // Радиус секторов
+
+            let colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00']; // Цвета для секторов
+
+            for (let i = 0; i < 4; i++) {
+                let startAngle = i * Math.PI / 2;
+                let endAngle = (i + 1) * Math.PI / 2;
+
+                let sectorGeometry = new ymaps.geometry.Polygon.fromEncodedCoordinates([
+                    ymaps.util.polygon.getCoordinates(restaurantCoords, radius, startAngle, endAngle)
+                ]);
+
+                let sector = new ymaps.Polygon([sectorGeometry], {}, {
+                    fillColor: colors[i],
+                    strokeColor: colors[i],
+                    opacity: 0.5
+                });
+
+                sectors.push(sector);
+                map.geoObjects.add(sector);
+            }
         }
 
         function addCourier() {
@@ -48,10 +76,11 @@
         }
 
         function createOrder() {
-            let sector = Math.floor(Math.random() * 4) + 1;
+            let sectorIndex = Math.floor(Math.random() * 4);
+            let sectorLetter = String.fromCharCode(65 + sectorIndex); // A, B, C, D
             let time = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow' });
-            orders.push({ sector: sector, time: time });
-            document.getElementById("orderLog").innerText += `Заказ Сектор ${sector}. ${time}\n`;
+            orders.push({ sector: sectorLetter, time: time });
+            document.getElementById("orderLog").innerText += `Заказ Сектор ${sectorLetter}. ${time}\n`;
         }
 
         function assignOrder() {
@@ -62,9 +91,7 @@
         }
 
         function assignCourier(order) {
-            // Логика назначения заказа на курьера в соответствии с вашим техническим заданием
-            // В этой функции вы можете реализовать алгоритм назначения курьера на заказ
-            // и вернуть объект курьера, на которого был назначен заказ
+            // Логика назначения заказа на курьера
             return couriers[0]; // Пример: всегда назначаем первого курьера
         }
     </script>
