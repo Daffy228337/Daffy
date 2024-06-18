@@ -1,99 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delivery Simulation</title>
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=0f2d1024-aa27-4ceb-b1cc-284236a7812d&lang=ru_RU" type="text/javascript"></script>
+    <meta name="title" content="Обучение МД Без Черновиков">
+    <meta name="description" content="Обучающая презентация по модулю МД">
+    <meta name="keywords" content="Обучение, МД, Без Черновиков">
+    <meta name="author" content="gasgag Dadad">
+    <title>Обучение МД Без Черновиков</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .sidebar {
+            width: 25%;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .main-content {
+            width: 75%;
+            padding: 20px;
+        }
+        .slide {
+            display: none;
+        }
+        .slide.active {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <div id="map" style="width: 100%; height: 400px;"></div>
-    <button id="addCourierBtn">Добавить курьера</button>
-    <button id="removeCourierBtn">Убрать курьера</button>
-    <button id="createOrderBtn">Создать заказ</button>
-    <button id="assignOrderBtn">Назначить заказ</button>
-    <div id="orderLog"></div>
-    <div id="courierOrdersLog"></div>
-
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="#" onclick="showSlide(0)">Меню</a></li>
+                <li><a href="#" onclick="showSlide(1)">Модуль.Дост.Авторизация</a></li>
+                <li><a href="#" onclick="showSlide(2)">Модуль.Дост.Основа</a></li>
+                <!-- Добавьте остальные пункты меню здесь -->
+            </ul>
+        </div>
+        <div class="main-content">
+            <div class="slide active" id="slide-1">
+                <h1>Меню</h1>
+                <p>Содержимое слайда "Меню"</p>
+            </div>
+            <div class="slide" id="slide-2">
+                <h1>Модуль.Дост.Авторизация</h1>
+                <p>Содержимое слайда "Модуль.Дост.Авторизация"</p>
+            </div>
+            <div class="slide" id="slide-3">
+                <h1>Модуль.Дост.Основа</h1>
+                <p>Содержимое слайда "Модуль.Дост.Основа"</p>
+            </div>
+            <!-- Добавьте остальные слайды здесь -->
+        </div>
+    </div>
     <script>
-        ymaps.ready(init);
-
-        let map;
-        let sectors = [];
-        let orders = [];
-        let couriers = [];
-
-        function init() {
-            map = new ymaps.Map("map", {
-                center: [48.7093, 44.5174],
-                zoom: 12
-            });
-
-            createSectors();
-
-            document.getElementById("addCourierBtn").addEventListener("click", addCourier);
-            document.getElementById("removeCourierBtn").addEventListener("click", removeCourier);
-            document.getElementById("createOrderBtn").addEventListener("click", createOrder);
-            document.getElementById("assignOrderBtn").addEventListener("click", assignOrder);
-        }
-
-        function createSectors() {
-            let restaurantCoords = [48.7093, 44.5174];
-            let radius = 2000; // Радиус секторов
-            let numSectors = 8; // Количество секторов
-
-            for (let i = 0; i < numSectors; i++) {
-                let startAngle = i * 2 * Math.PI / numSectors;
-                let endAngle = (i + 1) * 2 * Math.PI / numSectors;
-
-                let sectorGeometry = new ymaps.geometry.Polygon.fromEncodedCoordinates([
-                    ymaps.util.polygon.getCoordinates(restaurantCoords, radius, startAngle, endAngle)
-                ]);
-
-                let sector = new ymaps.Polygon([sectorGeometry], {}, {
-                    fillColor: 'rgba(0, 0, 255, 0.5)',
-                    strokeColor: 'rgba(0, 0, 255, 0.5)'
-                });
-
-                sectors.push(sector);
-                map.geoObjects.add(sector);
-
-                let sectorLetter = String.fromCharCode(65 + i); // A, B, C, D, E, F, G, H
-                let sectorLabel = new ymaps.Placemark(ymaps.util.bounds.getCenter(sectorGeometry.getBounds()), { iconContent: sectorLetter }, { preset: 'islands#blueStretchyIcon' });
-                map.geoObjects.add(sectorLabel);
-            }
-        }
-
-        function addCourier() {
-            let courierNumber = couriers.length + 1;
-            couriers.push({ number: courierNumber, orders: [] });
-            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${courierNumber}\n`;
-        }
-
-        function removeCourier() {
-            if (couriers.length > 0) {
-                let removedCourier = couriers.pop();
-                document.getElementById("courierOrdersLog").innerText += `Курьер номер ${removedCourier.number} удален\n`;
-            }
-        }
-
-        function createOrder() {
-            let sectorIndex = Math.floor(Math.random() * sectors.length);
-            let sectorLetter = String.fromCharCode(65 + sectorIndex);
-            let time = new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow' });
-            orders.push({ sector: sectorLetter, time: time });
-            document.getElementById("orderLog").innerText += `Заказ Сектор ${sectorLetter}. ${time}\n`;
-        }
-
-        function assignOrder() {
-            let newOrder = orders.pop();
-            let assignedCourier = assignCourier(newOrder);
-            assignedCourier.orders.push(newOrder.sector);
-            document.getElementById("courierOrdersLog").innerText += `Курьер номер ${assignedCourier.number}. Заказ ${newOrder.sector}\n`;
-        }
-
-        function assignCourier(order) {
-            return couriers[0]; // Пример: всегда назначаем первого курьера
+        function showSlide(index) {
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
         }
     </script>
 </body>
